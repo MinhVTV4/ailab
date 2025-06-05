@@ -371,7 +371,7 @@
         const infoPanelTitle = document.getElementById('info-panel-title');
         const infoPanelDescription = document.getElementById('info-panel-description');
         const infoPanelCloseButton = document.getElementById('info-panel-close-button');
-        const infoPanelCloseX = document.getElementById('info-panel-close-x'); // Corrected from `document = document.getElementById`
+        const infoPanelCloseX = document.getElementById('info-panel-close-x'); 
         
 
         // NEW: Experiment DOM elements
@@ -1010,7 +1010,8 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
         let konvaStage, konvaLayer, konvaEffectsLayer; 
         let konvaBeaker, konvaSolution, konvaBeakerLabel;
         let konvaChemicalsInBeaker = []; 
-        let konvaBubbleAnimation, konvaSmokeAnimation, konvaPrecipitateAnimation;
+        let konvaBubbleAnimation, konvaSmokeAnimation, konvaPrecipitateAnimation, konvaWaveAnimation; 
+        let konvaWaveLine; 
 
         const KONVA_INITIAL_STAGE_WIDTH = 600;
         const KONVA_INITIAL_STAGE_HEIGHT = 400;
@@ -1051,6 +1052,11 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 fill: 'rgba(233, 233, 233, 0.5)',
                 stroke: 'black',
                 strokeWidth: Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, currentW)),
+                cornerRadius: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW), 
+                shadowColor: 'black',
+                shadowBlur: getKonvaResponsiveValue(8, KONVA_INITIAL_STAGE_WIDTH, currentW), // Increased shadow blur
+                shadowOffset: { x: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, currentW) }, // Increased shadow offset
+                shadowOpacity: 0.4, // Increased shadow opacity
                 name: 'beaker'
             });
             konvaLayer.add(konvaBeaker);
@@ -1060,7 +1066,49 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 visible: false
             });
             konvaLayer.add(konvaSolution); 
+
+            // NEW: Wavy liquid surface line
+            const waveAmplitude = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW); // Increased amplitude
+            const waveFrequency = 0.05; 
+
+            konvaWaveLine = new Konva.Line({
+                stroke: 'white', 
+                strokeWidth: getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, currentW), // Increased stroke width
+                lineCap: 'round',
+                lineJoin: 'round',
+                name: 'waveLine',
+                listening: false, 
+                visible: false 
+            });
+            konvaLayer.add(konvaWaveLine); 
+            
             konvaBeaker.moveToTop(); 
+
+            konvaWaveAnimation = new Konva.Animation(frame => { 
+                if (!konvaSolution.visible() || konvaSolution.height() === 0 || !konvaWaveLine) {
+                    konvaWaveLine.points([]); 
+                    konvaWaveLine.visible(false);
+                    return;
+                }
+                konvaWaveLine.visible(true);
+                const solutionTopY = konvaSolution.y();
+                const solutionLeftX = konvaSolution.x();
+                const solutionWidth = konvaSolution.width();
+
+                const points = [];
+                let currentWaveOffset = (frame.time * 0.008) % (Math.PI * 2); // Increased speed
+                for (let i = 0; i <= solutionWidth; i += 5) { 
+                    const y = solutionTopY + waveAmplitude * Math.sin(i * waveFrequency + currentWaveOffset);
+                    points.push(solutionLeftX + i, y);
+                }
+                konvaWaveLine.points(points);
+                const solutionFillColor = konvaSolution.fill();
+                const waveStrokeColor = solutionFillColor.startsWith('rgba') ? solutionFillColor.replace(/[\d\.]+\)$/, '1)') : 'white';
+                konvaWaveLine.stroke(waveStrokeColor);
+            }, konvaLayer);
+            konvaWaveAnimation.start();
+
+
             const labelFontSize = Math.max(12, getKonvaResponsiveValue(20, KONVA_INITIAL_STAGE_WIDTH, currentW));
             konvaBeakerLabel = new Konva.Text({
                 text: 'Cốc TN',
@@ -1104,6 +1152,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 konvaSolution.height(0);
                 konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - padding);
                 konvaSolution.visible(false);
+                if (konvaWaveLine) konvaWaveLine.visible(false); // Hide wave line
             } else {
                 const maxRise = getKonvaResponsiveValue(KONVA_MAX_LIQUID_RISE, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height());
                 const risePerChemicalDrop = maxRise / (konvaChemicalsInBeaker.length + 5); 
@@ -1112,6 +1161,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 konvaSolution.height(targetHeight);
                 konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - targetHeight - padding);
                 konvaSolution.visible(true);
+                if (konvaWaveLine) konvaWaveLine.visible(true); // Show wave line
             }
             konvaLayer.batchDraw();
         }
@@ -1132,8 +1182,11 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             const rect = new Konva.Rect({
                 width: chemicalSize.width, height: chemicalSize.height * 1.2, 
                 fill: chemicalData.solutionColor || 'rgba(200,200,200,0.7)',
-                stroke: 'black', strokeWidth: 1, cornerRadius: 5,
-                shadowColor: 'black', shadowBlur: 3, shadowOpacity: 0.3,
+                stroke: 'black', strokeWidth: 1, 
+                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(5), shadowOpacity: 0.4, // Increased shadow
+                shadowOffsetX: getKonvaResponsiveValue(3), 
+                shadowOffsetY: getKonvaResponsiveValue(3), 
+                cornerRadius: getKonvaResponsiveValue(8), 
             });
             group.add(rect);
             const text = new Konva.Text({
@@ -1253,26 +1306,32 @@ Output chỉ là JSON object.
             console.log("[KonvaEffect] Starting Bubbling with intensity:", intensity);
             if (konvaBubbleAnimation) konvaBubbleAnimation.stop();
             if (konvaEffectsLayer) konvaEffectsLayer.find('.bubble').forEach(n => n.destroy()); 
-            let interval = 100; // ms
+            let interval = 80; // Tần suất tạo bong bóng nhanh hơn (từ 100)
             let countPerInterval = 1;
 
-            if (intensity === "low") { interval = 200; countPerInterval = 1; }
-            else if (intensity === "medium") { interval = 100; countPerInterval = 1; }
-            else if (intensity === "high") { interval = 50; countPerInterval = 2; }
-            else if (intensity === "vigorous") { interval = 30; countPerInterval = 3; }
+            if (intensity === "low") { interval = 180; countPerInterval = 1; }
+            else if (intensity === "medium") { interval = 80; countPerInterval = 1; }
+            else if (intensity === "high") { interval = 40; countPerInterval = 2; } // Nhiều bong bóng hơn, nhanh hơn
+            else if (intensity === "vigorous") { interval = 20; countPerInterval = 4; } // Nhiều bong bóng hơn nữa, rất nhanh
 
             konvaBubbleAnimation = new Konva.Animation(frame => {
                 if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
                 if (frame.timeDiff > interval) {
                     for (let i = 0; i < countPerInterval; i++) {
                         const bubble = new Konva.Circle({ 
-                            x: konvaSolution.x() + Math.random() * konvaSolution.width(),
+                            x: konvaSolution.x() + Math.random() * konvaSolution.width(), 
                             y: konvaSolution.y() + konvaSolution.height() - 5,
-                            radius: Math.random() * 3 + 1,
-                            fill: 'white', opacity: 0.7, name: 'bubble'
+                            radius: Math.random() * 4 + 2, // Kích thước bong bóng lớn hơn (từ 3+1)
+                            fill: 'rgba(255, 255, 255, 0.8)', opacity: 0.9, name: 'bubble' // Opacity cao hơn
                         });
                         konvaEffectsLayer.add(bubble);
-                        new Konva.Tween({node: bubble, duration: Math.random() * 1.5 + 1, y: konvaSolution.y() + 10, opacity: 0, onFinish: () => bubble.destroy()}).play();
+                        new Konva.Tween({
+                            node: bubble,
+                            duration: Math.random() * 1.8 + 1.2, // Thời gian tồn tại dài hơn một chút
+                            y: konvaSolution.y() - 10, // Nổi cao hơn bề mặt
+                            opacity: 0, 
+                            onFinish: () => bubble.destroy() 
+                        }).play();
                     }
                 }
             }, konvaEffectsLayer);
@@ -1283,24 +1342,34 @@ Output chỉ là JSON object.
             console.log("[KonvaEffect] Starting Smoke with intensity:", intensity);
             if (konvaSmokeAnimation) konvaSmokeAnimation.stop();
             if (konvaEffectsLayer) konvaEffectsLayer.find('.smoke').forEach(n => n.destroy()); 
-            let interval = 150; // ms
+            let interval = 120; // Nhanh hơn một chút (từ 150)
             let countPerInterval = 1;
 
-            if (intensity === "low") { interval = 250; countPerInterval = 1; }
-            else if (intensity === "medium") { interval = 150; countPerInterval = 1; }
-            else if (intensity === "high") { interval = 75; countPerInterval = 2; }
+            if (intensity === "low") { interval = 220; countPerInterval = 1; }
+            else if (intensity === "medium") { interval = 120; countPerInterval = 1; }
+            else if (intensity === "high") { interval = 60; countPerInterval = 2; } // Nhiều hạt khói hơn, nhanh hơn
 
             konvaSmokeAnimation = new Konva.Animation(frame => {
                 if (!frame) return;
                 if (frame.timeDiff > interval) {
                     for (let i = 0; i < countPerInterval; i++) {
                         const smoke = new Konva.Ellipse({ 
-                            x: konvaBeaker.x() + konvaBeaker.width() / 2 + (Math.random() - 0.5) * konvaBeaker.width() * 0.6,
-                            y: konvaBeaker.y() - 8, radiusX: Math.random() * 10 + 6, radiusY: Math.random() * 6 + 4,
-                            fill: 'rgba(180,180,180,0.3)', opacity: 0.5, name: 'smoke'
+                            x: konvaBeaker.x() + konvaBeaker.width() / 2 + (Math.random() - 0.5) * konvaBeaker.width() * 0.7, // Rộng hơn một chút
+                            y: konvaBeaker.y() - 10, // Bắt đầu thấp hơn một chút so với miệng cốc
+                            radiusX: Math.random() * 12 + 8, // Kích thước lớn hơn
+                            radiusY: Math.random() * 8 + 6, // Kích thước lớn hơn
+                            fill: 'rgba(180,180,180,0.4)', opacity: 0.6, name: 'smoke' // Opacity cao hơn
                         });
                         konvaEffectsLayer.add(smoke);
-                        new Konva.Tween({node: smoke, duration: Math.random() * 2.5 + 1.5, y: konvaBeaker.y() - 40, opacity: 0, scaleX: 1.5, scaleY: 1.5, onFinish: () => smoke.destroy()}).play();
+                        new Konva.Tween({
+                            node: smoke,
+                            duration: Math.random() * 3 + 2, // Thời gian tồn tại dài hơn
+                            y: konvaBeaker.y() - 60, // Bay cao hơn
+                            opacity: 0, 
+                            scaleX: 1.8, // Nở ra nhiều hơn
+                            scaleY: 1.8,
+                            onFinish: () => smoke.destroy()
+                        }).play();
                     }
                 }
             }, konvaEffectsLayer);
@@ -1314,14 +1383,22 @@ Output chỉ là JSON object.
             
             konvaPrecipitateAnimation = new Konva.Animation(frame => {
                  if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
-                if (frame.timeDiff > 50 && Math.random() < 0.4) {
+                if (frame.timeDiff > 40 && Math.random() < 0.5) { // Tần suất nhanh hơn, nhiều hạt hơn
                     const particle = new Konva.Circle({ 
                         x: konvaSolution.x() + Math.random() * konvaSolution.width(),
-                        y: konvaSolution.y() + Math.random() * konvaSolution.height() * 0.5,
-                        radius: Math.random() * 2 + 0.8, fill: precipitateColorRGBA, name: 'precipitate'
+                        y: konvaSolution.y() + Math.random() * konvaSolution.height() * 0.6, // Bắt đầu từ vị trí cao hơn
+                        radius: Math.random() * 3 + 1.5, // Kích thước lớn hơn
+                        fill: precipitateColorRGBA, 
+                        opacity: 0.9, // Rõ ràng hơn
+                        name: 'precipitate'
                     });
                     konvaEffectsLayer.add(particle);
-                    new Konva.Tween({node: particle, duration: Math.random() * 3 + 2, y: konvaSolution.y() + konvaSolution.height() - particle.radius() - 3, easing: Konva.Easings.EaseIn}).play();
+                    new Konva.Tween({
+                        node: particle,
+                        duration: Math.random() * 2.5 + 1.5, // Thời gian lắng nhanh hơn
+                        y: konvaSolution.y() + konvaSolution.height() - particle.radius() - 3, 
+                        easing: Konva.Easings.EaseIn 
+                    }).play();
                 }
             }, konvaEffectsLayer);
             konvaPrecipitateAnimation.start();
@@ -1336,15 +1413,15 @@ Output chỉ là JSON object.
             let duration = 0;
 
             if (effectType.includes("exothermic")) {
-                color = 'rgba(255, 69, 0, 0.4)'; // Orange-red for exothermic
-                opacity = 0.8;
-                duration = 2; // seconds
+                color = 'rgba(255, 69, 0, 0.6)'; // Orange-red, opacity cao hơn (từ 0.4)
+                opacity = 0.9; // Opacity cao hơn (từ 0.8)
+                duration = 2; 
             } else if (effectType.includes("endothermic")) {
-                color = 'rgba(0, 191, 255, 0.4)'; // Light blue for endothermic
-                opacity = 0.8;
+                color = 'rgba(0, 191, 255, 0.6)'; // Light blue, opacity cao hơn (từ 0.4)
+                opacity = 0.9; // Opacity cao hơn (từ 0.8)
                 duration = 2;
             } else {
-                return; // No significant temperature change to visualize
+                return; 
             }
 
             const tempIndicator = new Konva.Rect({
@@ -1353,13 +1430,12 @@ Output chỉ là JSON object.
                 width: konvaBeaker.width(),
                 height: konvaBeaker.height(),
                 fill: color,
-                opacity: 0, // Start fully transparent
+                opacity: 0, 
                 cornerRadius: konvaBeaker.cornerRadius(),
                 name: 'temp-indicator'
             });
             konvaEffectsLayer.add(tempIndicator);
 
-            // Animate fade in and fade out
             new Konva.Tween({
                 node: tempIndicator,
                 duration: 0.5,
@@ -1383,13 +1459,22 @@ Output chỉ là JSON object.
             console.log("[KonvaEffect] Stopping all effects");
             if (!konvaEffectsLayer) { 
                 console.warn("[stopAllKonvaEffects] konvaEffectsLayer is not initialized. Skipping effect stopping.");
-                return;
+            } else {
+                konvaEffectsLayer.find('.bubble, .smoke, .precipitate, .temp-indicator').forEach(n => n.destroy());
+                konvaEffectsLayer.batchDraw();
             }
             if (konvaBubbleAnimation) konvaBubbleAnimation.stop();
             if (konvaSmokeAnimation) konvaSmokeAnimation.stop();
             if (konvaPrecipitateAnimation) konvaPrecipitateAnimation.stop();
-            konvaEffectsLayer.find('.bubble, .smoke, .precipitate, .temp-indicator').forEach(n => n.destroy());
-            konvaEffectsLayer.batchDraw();
+            if (konvaWaveAnimation) { 
+                konvaWaveAnimation.stop();
+            }
+            if (konvaWaveLine) {
+                konvaWaveLine.points([]);
+                konvaWaveLine.visible(false);
+                // konvaWaveLine.destroy(); // Keep the object, just hide it for re-use
+                // konvaWaveLine = null; 
+            }
         }
         
         function resetBeaker() {
@@ -1428,6 +1513,10 @@ Output chỉ là JSON object.
         toggleExperimentManagementButton.addEventListener('click', () => {
             const isHidden = experimentManagementSection.classList.toggle('hidden');
             toggleExperimentText.textContent = isHidden ? 'Mở Quản Lý Thí Nghiệm' : 'Đóng Quản Lý Thí Nghiệm';
+            // Ensure experiments are loaded/reloaded when section is opened
+            if (!isHidden) {
+                loadUserExperiments();
+            }
         });
 
 
