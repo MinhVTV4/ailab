@@ -217,7 +217,7 @@
         <div class="mb-6 p-4 bg-white rounded shadow">
             <h3 class="text-xl font-semibold text-gray-700 mb-3">Hóa Chất Của Bạn</h3>
             <div id="userChemicalsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 min-h-[100px] bg-gray-50 p-2 rounded border">
-                <p class="text-gray-500 col-span-full text-center py-4">Chưa có hóa chất nào được lưu.</p>
+                <p class="text-gray-500 col-span-full text-center py-4">Bạn chưa lưu hóa chất nào.</p>
             </div>
         </div>
 
@@ -1045,55 +1045,24 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             konvaEffectsLayer = new Konva.Layer();
             konvaStage.add(konvaEffectsLayer);
 
-            // NEW: More realistic beaker shape (trapezoid body + thin base)
-            const responsiveBeakerTopWidth = getKonvaResponsiveValue(KONVA_BEAKER_BASE_SIZE.width + 20, KONVA_INITIAL_STAGE_WIDTH, currentW); 
-            const responsiveBeakerBottomWidth = getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentW).width;
-            const responsiveBeakerBodyHeight = getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentW).height;
-            const responsiveBeakerBaseHeight = getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW); 
-
-            const beakerX = getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, currentW);
-            const beakerY = getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, currentH);
-
-            const centerX = beakerX + responsiveBeakerBottomWidth / 2;
-            const topX1 = centerX - responsiveBeakerTopWidth / 2;
-            const topX2 = centerX + responsiveBeakerTopWidth / 2;
-            const bottomX1 = beakerX;
-            const bottomX2 = beakerX + responsiveBeakerBottomWidth;
-
-            konvaBeaker = new Konva.Shape({
-                sceneFunc: function (context, shape) {
-                    context.beginPath();
-                    // Main body of the beaker (trapezoid)
-                    context.moveTo(topX1, beakerY); // Top-left
-                    context.lineTo(topX2, beakerY); // Top-right
-                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight); // Bottom-right
-                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight); // Bottom-left
-                    context.closePath();
-                    // Base of the beaker (rectangle below body)
-                    context.moveTo(bottomX1, beakerY + responsiveBeakerBodyHeight); // Re-use bottom-left of body
-                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight); // Re-use bottom-right of body
-                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight); // Bottom-right of base
-                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight); // Bottom-left of base
-                    context.closePath();
-                    context.fillStrokeShape(shape);
-                },
-                fillLinearGradientStartPoint: { x: beakerX, y: beakerY },
-                fillLinearGradientEndPoint: { x: beakerX + responsiveBeakerBottomWidth, y: beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight },
+            // Reverted to Konva.Rect for simpler beaker shape but with enhanced styling
+            konvaBeaker = new Konva.Rect({
+                x: getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, currentW),
+                y: getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, currentH),
+                width: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentW).width,
+                height: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentW).height, 
+                // Using a linear gradient to give a glass-like effect
+                fillLinearGradientStartPoint: { x: 0, y: 0 },
+                fillLinearGradientEndPoint: { x: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentW).width, y: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentW).height },
                 fillLinearGradientColorStops: [0, 'rgba(255,255,255,0.7)', 0.5, 'rgba(240,240,240,0.7)', 1, 'rgba(200,200,200,0.7)'],
                 stroke: 'black',
                 strokeWidth: Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, currentW)),
+                cornerRadius: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW), // Apply corner radius
                 shadowColor: 'black',
-                shadowBlur: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW),
-                shadowOffset: { x: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW) },
-                shadowOpacity: 0.5,
-                name: 'beaker',
-                // Store original dimensions for responsiveness
-                originalTopWidth: KONVA_BEAKER_BASE_SIZE.width + 20,
-                originalBottomWidth: KONVA_BEAKER_BASE_SIZE.width,
-                originalBodyHeight: KONVA_BEAKER_BASE_SIZE.height,
-                originalBaseHeight: 10,
-                originalX: KONVA_BEAKER_BASE_X,
-                originalY: KONVA_BEAKER_BASE_Y
+                shadowBlur: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW), // Increased shadow blur for depth
+                shadowOffset: { x: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW) }, // Increased shadow offset
+                shadowOpacity: 0.5, // Increased shadow opacity
+                name: 'beaker'
             });
             konvaLayer.add(konvaBeaker);
 
@@ -1166,38 +1135,26 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 return;
             }
 
-            // Adjust padding to match the new beaker shape (width and position of the inner liquid)
             const padding = getKonvaResponsiveValue(KONVA_SOLUTION_PADDING_BASE, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
             
-            // The beaker's actual bottom width for the solution
-            const responsiveBeakerBottomWidth = getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).width;
-            
-            // Calculate solution width based on the bottom width of the beaker (minus padding)
-            konvaSolution.width(responsiveBeakerBottomWidth - 2 * padding);
-            
-            // Calculate solution X based on the beaker's X and current responsiveness
-            // This ensures the solution is centered horizontally within the beaker's base
-            const beakerCurrentX = konvaBeaker.x() + (konvaBeaker.width() - responsiveBeakerBottomWidth) / 2; // Beaker's original left edge + offset to its body's left edge
-            konvaSolution.x(beakerCurrentX + padding);
+            // For Konva.Rect beaker, its width is directly konvaBeaker.width()
+            konvaSolution.width(konvaBeaker.width() - 2 * padding);
+            konvaSolution.x(konvaBeaker.x() + padding);
 
             if (konvaChemicalsInBeaker.length === 0) {
                 konvaSolution.height(0);
-                // Position at the very bottom of the beaker's body
-                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - padding); // Adjust Y based on beaker's final Y and padding
+                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - padding); 
                 konvaSolution.visible(false);
                 if (konvaWaveLine) konvaWaveLine.visible(false); // Hide wave line
             } else {
                 const maxRise = getKonvaResponsiveValue(KONVA_MAX_LIQUID_RISE, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height());
                 const risePerChemicalDrop = maxRise / (konvaChemicalsInBeaker.length + 5); 
                 let targetHeight = Math.min(konvaChemicalsInBeaker.length * risePerChemicalDrop, maxRise);
-                // Ensure solution does not go above the top of the beaker's body (excluding top lip)
-                const beakerBodyTopY = konvaBeaker.y(); // Top of the beaker shape's body
-                const beakerBodyHeight = konvaBeaker.height(); // Height of the beaker shape's body
-                targetHeight = Math.min(targetHeight, beakerBodyHeight - 2 * padding);
+                
+                targetHeight = Math.min(targetHeight, konvaBeaker.height() - 2 * padding);
 
                 konvaSolution.height(targetHeight);
-                // Position solution from the bottom of the beaker's body
-                konvaSolution.y(beakerBodyTopY + beakerBodyHeight - targetHeight - padding);
+                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - targetHeight - padding);
                 konvaSolution.visible(true);
                 if (konvaWaveLine) konvaWaveLine.visible(true); // Show wave line
             }
@@ -1567,8 +1524,6 @@ Output chỉ là JSON object.
             if (konvaWaveLine) {
                 konvaWaveLine.points([]);
                 konvaWaveLine.visible(false);
-                // konvaWaveLine.destroy(); // Keep the object, just hide it for re-use
-                // konvaWaveLine = null; 
             }
         }
         
@@ -1624,40 +1579,26 @@ Output chỉ là JSON object.
             konvaStage.width(containerWidth);
             konvaStage.height(KONVA_INITIAL_STAGE_HEIGHT * scale); 
             if (konvaBeaker) {
-                // Adjusting beaker points based on new scale
-                const responsiveBeakerTopWidth = getKonvaResponsiveValue(konvaBeaker.originalTopWidth, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()); 
-                const responsiveBeakerBottomWidth = getKonvaResponsiveSize(konvaBeaker.originalBottomWidth, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).width;
-                const responsiveBeakerBodyHeight = getKonvaResponsiveSize(konvaBeaker.originalBodyHeight, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).height;
-                const responsiveBeakerBaseHeight = getKonvaResponsiveValue(konvaBeaker.originalBaseHeight, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()); 
-
-                const beakerX = getKonvaResponsiveValue(konvaBeaker.originalX, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
-                const beakerY = getKonvaResponsiveValue(konvaBeaker.originalY, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height());
-
-                const centerX = beakerX + responsiveBeakerBottomWidth / 2;
-                const topX1 = centerX - responsiveBeakerTopWidth / 2;
-                const topX2 = centerX + responsiveBeakerTopWidth / 2;
-                const bottomX1 = beakerX;
-                const bottomX2 = beakerX + responsiveBeakerBottomWidth;
-
-                konvaBeaker.sceneFunc(function (context, shape) {
-                    context.beginPath();
-                    context.moveTo(topX1, beakerY);
-                    context.lineTo(topX2, beakerY);
-                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight);
-                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight);
-                    context.closePath();
-                    context.moveTo(bottomX1, beakerY + responsiveBeakerBodyHeight);
-                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight);
-                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight);
-                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight);
-                    context.closePath();
-                    context.fillStrokeShape(shape);
-                });
+                // Konva.Rect scales its position, width, height directly
+                konvaBeaker.x(getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaBeaker.y(getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height()));
+                konvaBeaker.width(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).width);
+                konvaBeaker.height(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).height);
+                
+                // Scale properties proportionally
                 konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())));
-                // konvaBeaker.cornerRadius is not a function - Removed this line as Konva.Shape does not have this method
-                konvaBeaker.shadowBlur(getKonvaResponsiveValue(8, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
-                konvaBeaker.shadowOffset({ x: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()), y: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()) });
+                konvaBeaker.cornerRadius(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaBeaker.shadowBlur(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaBeaker.shadowOffset({ 
+                    x: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()), 
+                    y: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()) 
+                });
 
+                // Update gradient based on new size
+                konvaBeaker.fillLinearGradientEndPoint({ 
+                    x: konvaBeaker.width(), 
+                    y: konvaBeaker.height() 
+                });
             }
             if (konvaSolution) {
                 updateKonvaSolutionVisualState();
@@ -1665,6 +1606,32 @@ Output chỉ là JSON object.
             // Update wave line stroke width
             if (konvaWaveLine) {
                 konvaWaveLine.strokeWidth(getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                // Update wave amplitude based on new scale
+                const waveAmplitude = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
+                konvaWaveAnimation.stop(); // Stop, update, then restart
+                konvaWaveAnimation = new Konva.Animation(frame => { 
+                    if (!konvaSolution.visible() || konvaSolution.height() === 0 || !konvaWaveLine) {
+                        konvaWaveLine.points([]); 
+                        konvaWaveLine.visible(false);
+                        return;
+                    }
+                    konvaWaveLine.visible(true);
+                    const solutionTopY = konvaSolution.y();
+                    const solutionLeftX = konvaSolution.x();
+                    const solutionWidth = konvaSolution.width();
+
+                    const points = [];
+                    let currentWaveOffset = (frame.time * 0.008) % (Math.PI * 2); 
+                    for (let i = 0; i <= solutionWidth; i += 5) { 
+                        const y = solutionTopY + waveAmplitude * Math.sin(i * waveFrequency + currentWaveOffset);
+                        points.push(solutionLeftX + i, y);
+                    }
+                    konvaWaveLine.points(points);
+                    const solutionFillColor = konvaSolution.fill();
+                    const waveStrokeColor = solutionFillColor.startsWith('rgba') ? solutionFillColor.replace(/[\d\.]+\)$/, '1)') : 'white';
+                    konvaWaveLine.stroke(waveStrokeColor);
+                }, konvaLayer);
+                konvaWaveAnimation.start();
             }
 
             // Add check for konvaLayer before using find()
@@ -1682,20 +1649,29 @@ Output chỉ là JSON object.
 
                     group.findOne('.bottle-body').width(bottleBodyWidth).height(bottleBodyHeight)
                         .x((chemicalSize.width - bottleBodyWidth) / 2)
-                        .y(bottleCapHeight + bottleNeckHeight);
+                        .y(bottleCapHeight + bottleNeckHeight)
+                        .cornerRadius(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
+                        .shadowBlur(getKonvaResponsiveValue(6, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
+                        .shadowOffset({x: getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()), y: getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())});
                     group.findOne('.bottle-neck').width(bottleNeckWidth).height(bottleNeckHeight)
                         .x((chemicalSize.width - bottleNeckWidth) / 2)
-                        .y(bottleCapHeight);
+                        .y(bottleCapHeight)
+                        .cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
+                        .shadowBlur(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
+                        .shadowOffset({x: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()), y: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())});
                     group.findOne('.bottle-cap').width(bottleCapWidth).height(bottleCapHeight)
                         .x((chemicalSize.width - bottleCapWidth) / 2)
-                        .y(0);
+                        .y(0)
+                        .cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
+                        .shadowBlur(getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
+                        .shadowOffset({x: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()), y: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())});
                     
-                    const textNode = group.findOne('Text.bottle-text'); // Find by class name
+                    const textNode = group.findOne('Text.bottle-text'); 
                     textNode.fontSize(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
                             .width(bottleBodyWidth)
                             .height(bottleBodyHeight)
-                            .x(group.findOne('.bottle-body').x()) // Align with body x
-                            .y(group.findOne('.bottle-body').y() + (bottleBodyHeight - textNode.fontSize()) / 2); // Center text vertically
+                            .x(group.findOne('.bottle-body').x()) 
+                            .y(group.findOne('.bottle-body').y() + (bottleBodyHeight - textNode.fontSize()) / 2); 
                 });
             }
             konvaStage.batchDraw();
