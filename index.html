@@ -190,9 +190,7 @@
                 <input type="text" id="chemicalNameInput" placeholder="Nhập tên hóa chất (ví dụ: Axit Sunfuric)" class="flex-grow p-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
                 <button id="createChemicalButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded">Tạo Hóa Chất</button>
             </div>
-            <div id="aiChemicalDefinitionArea" class="mt-4 p-3 border rounded bg-gray-50 min-h-[100px] whitespace-pre-line">
-                Thông tin hóa chất từ AI sẽ hiển thị ở đây...
-            </div>
+            <!-- Removed aiChemicalDefinitionArea, using toast for feedback -->
         </div>
         
         <div class="mb-6 p-4 bg-white rounded shadow">
@@ -354,7 +352,7 @@
         const showLoginLink = document.getElementById('showLoginLink');
         const chemicalNameInput = document.getElementById('chemicalNameInput');
         const createChemicalButton = document.getElementById('createChemicalButton');
-        const aiChemicalDefinitionArea = document.getElementById('aiChemicalDefinitionArea');
+        // Removed aiChemicalDefinitionArea as it's no longer needed
         const userChemicalsContainer = document.getElementById('userChemicalsContainer');
         const confirmSaveModal = document.getElementById('confirmSaveModal');
         const confirmChemicalDetails = document.getElementById('confirmChemicalDetails');
@@ -610,7 +608,7 @@
                 showToast("Vui lòng nhập tên hóa chất.");
                 return;
             }
-            aiChemicalDefinitionArea.textContent = "Đang liên hệ với AI để định nghĩa hóa chất...";
+            showToast("Đang liên hệ với AI để định nghĩa hóa chất..."); // Replaced textContent with toast
             geminiApiErrorNotice.classList.add('hidden'); // Ẩn thông báo lỗi cũ (nếu có)
             currentSelectedAiChemical = null;
             
@@ -667,10 +665,10 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 currentSelectedAiChemical = JSON.parse(rawJsonText); 
                 confirmChemicalDetails.innerHTML = `<pre class="bg-gray-100 p-2 rounded text-xs">${JSON.stringify(currentSelectedAiChemical, null, 2)}</pre>`;
                 confirmSaveModal.classList.remove('hidden');
-                aiChemicalDefinitionArea.textContent = `AI đã định nghĩa hóa chất: ${currentSelectedAiChemical.name || chemicalName}. Kiểm tra và xác nhận lưu.`;
+                showToast(`AI đã định nghĩa hóa chất: ${currentSelectedAiChemical.name || chemicalName}. Vui lòng xác nhận để lưu.`); // Replaced textContent with toast
             } catch (error) {
                 console.error("Lỗi khi gọi Gemini API hoặc parse JSON:", error);
-                aiChemicalDefinitionArea.textContent = `Lỗi: ${error.message}`;
+                showToast(`Lỗi AI: ${error.message}`); // Replaced textContent with toast
                 geminiApiErrorNotice.classList.remove('hidden'); // Hiển thị thông báo lỗi API
                 geminiApiErrorNotice.innerHTML = `<p class="font-bold">Lỗi kết nối Gemini API!</p><p>${error.message}. Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật trên Google Cloud Console.</p>`;
                 currentSelectedAiChemical = null;
@@ -680,7 +678,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
         cancelSaveChemical.addEventListener('click', () => {
             confirmSaveModal.classList.add('hidden');
             currentSelectedAiChemical = null; 
-            aiChemicalDefinitionArea.textContent = "Đã hủy lưu hóa chất.";
+            showToast("Đã hủy lưu hóa chất."); // Replaced textContent with toast
         });
         
         confirmSaveChemicalButtonAction.addEventListener('click', async () => {
@@ -700,7 +698,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 console.log("Hóa chất đã được lưu với ID: ", docRef.id);
                 showToast(`Đã lưu hóa chất: ${currentSelectedAiChemical.name || 'Chưa có tên'}`);
                 chemicalNameInput.value = ''; 
-                aiChemicalDefinitionArea.textContent = "Thông tin hóa chất từ AI sẽ hiển thị ở đây...";
+                // Removed aiChemicalDefinitionArea.textContent update here
                 currentSelectedAiChemical = null; 
                 confirmSaveModal.classList.add('hidden');
             } catch (error) {
@@ -839,7 +837,8 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 }
                 currentExperimentData = experimentDataToSave; // Set as current
                 experimentNameInput.value = ''; // Clear input
-            } catch (error) {
+            }
+            catch (error) {
                 console.error("Lỗi khi lưu thí nghiệm:", error);
                 showToast(`Lỗi khi lưu thí nghiệm: ${error.message}`);
             }
@@ -991,7 +990,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
 
             resetBeaker(); // Re-use resetBeaker function to clear Konva state
             currentSelectedAiChemical = null;
-            aiChemicalDefinitionArea.textContent = "Thông tin hóa chất từ AI sẽ hiển thị ở đây...";
+            // Removed aiChemicalDefinitionArea.textContent update here
             geminiApiErrorNotice.classList.add('hidden');
             
             // NEW: Clear current experiment state
@@ -1245,7 +1244,7 @@ Output chỉ là JSON object.
         function startKonvaBubblingEffect(intensity = "medium") {
             console.log("[KonvaEffect] Starting Bubbling with intensity:", intensity);
             if (konvaBubbleAnimation) konvaBubbleAnimation.stop();
-            konvaEffectsLayer.find('.bubble').forEach(n => n.destroy());
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.bubble').forEach(n => n.destroy()); // Added null check
             let interval = 100; // ms
             let countPerInterval = 1;
 
@@ -1275,7 +1274,7 @@ Output chỉ là JSON object.
         function startKonvaSmokeEffect(intensity = "medium") {
             console.log("[KonvaEffect] Starting Smoke with intensity:", intensity);
             if (konvaSmokeAnimation) konvaSmokeAnimation.stop();
-            konvaEffectsLayer.find('.smoke').forEach(n => n.destroy());
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.smoke').forEach(n => n.destroy()); // Added null check
             let interval = 150; // ms
             let countPerInterval = 1;
 
@@ -1303,7 +1302,7 @@ Output chỉ là JSON object.
         function startKonvaPrecipitateEffect(precipitateColorRGBA = "rgba(250, 250, 250, 0.9)") {
             console.log("[KonvaEffect] Starting Precipitate, color:", precipitateColorRGBA);
             if (konvaPrecipitateAnimation) konvaPrecipitateAnimation.stop();
-            konvaEffectsLayer.find('.precipitate').forEach(n => n.destroy());
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.precipitate').forEach(n => n.destroy()); // Added null check
             
             konvaPrecipitateAnimation = new Konva.Animation(frame => {
                  if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
@@ -1322,7 +1321,7 @@ Output chỉ là JSON object.
 
         function visualizeTemperatureChange(effectType) {
             console.log("[KonvaEffect] Visualizing Temperature Change:", effectType);
-            konvaEffectsLayer.find('.temp-indicator').forEach(n => n.destroy()); // Clear previous indicators
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.temp-indicator').forEach(n => n.destroy()); // Added null check
 
             let color = 'transparent';
             let opacity = 0;
@@ -1368,13 +1367,13 @@ Output chỉ là JSON object.
                     }).play();
                 }
             }).play();
-            konvaEffectsLayer.batchDraw();
+            if (konvaEffectsLayer) konvaEffectsLayer.batchDraw(); // Added null check
         }
 
 
         function stopAllKonvaEffects() {
             console.log("[KonvaEffect] Stopping all effects");
-            if (!konvaEffectsLayer) { // Add this check
+            if (!konvaEffectsLayer) { 
                 console.warn("[stopAllKonvaEffects] konvaEffectsLayer is not initialized. Skipping effect stopping.");
                 return;
             }
@@ -1388,12 +1387,11 @@ Output chỉ là JSON object.
         function resetBeaker() {
             konvaChemicalsInBeaker = [];
             stopAllKonvaEffects();
-            // Add checks for konvaSolution and konvaBeaker before accessing their properties
             if (konvaSolution && konvaBeaker) { 
-                konvaSolution.height(0); // Reset height to 0
-                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - KONVA_SOLUTION_PADDING_BASE); // Move to bottom
-                konvaSolution.visible(false); // Make invisible
-                konvaSolution.fill('rgba(173, 216, 230, 0.3)'); // Reset to default transparent-ish blue
+                konvaSolution.height(0); 
+                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - KONVA_SOLUTION_PADDING_BASE); 
+                konvaSolution.visible(false); 
+                konvaSolution.fill('rgba(173, 216, 230, 0.3)'); 
             }
             if (konvaLayer) konvaLayer.batchDraw(); 
             document.getElementById('responseContainer').textContent = "Cốc đã được làm sạch.";
