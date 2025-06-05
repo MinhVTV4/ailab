@@ -878,11 +878,11 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 chemicalElement.style.borderColor = typeColor; 
 
                 const nameEl = document.createElement('h4');
-                nameEl.className = 'font-semibold mb-1 truncate'; 
+                nameEl.className = 'font-semibold truncate'; // Removed mb-1
                 nameEl.textContent = chemicalData.name || "Chưa đặt tên";
                 chemicalElement.appendChild(nameEl);
                 const formulaEl = document.createElement('p');
-                formulaEl.className = 'text-xs text-gray-600 mb-2 truncate'; 
+                formulaEl.className = 'text-gray-600 truncate'; // Removed mb-2, text-xs
                 formulaEl.textContent = `(${chemicalData.formula || 'N/A'})`;
                 chemicalElement.appendChild(formulaEl);
 
