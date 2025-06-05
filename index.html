@@ -75,6 +75,74 @@
             width: 90%;
             max-width: 400px;
         }
+        /* NEW: Styles for smaller chemical cards */
+        #userChemicalsContainer .chemical-card {
+            padding: 0.5rem; /* Reduced padding */
+            font-size: 0.75rem; /* Smaller font size */
+            position: relative; /* Needed for tooltip positioning */
+        }
+        #userChemicalsContainer .chemical-card h4 {
+            font-size: 0.875rem; /* Slightly larger for name */
+            margin-bottom: 0.25rem;
+        }
+        #userChemicalsContainer .chemical-card p {
+            font-size: 0.625rem; /* Smaller for formula */
+        }
+        /* Responsive grid for chemical cards */
+        #userChemicalsContainer {
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Min width 100px, responsive fill */
+            gap: 0.5rem; /* Reduced gap */
+        }
+        @media (min-width: 640px) { /* sm */
+            #userChemicalsContainer {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            }
+        }
+        @media (min-width: 768px) { /* md */
+            #userChemicalsContainer {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+        @media (min-width: 1024px) { /* lg */
+            #userChemicalsContainer {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            }
+        }
+
+        /* Tooltip styles */
+        .chemical-tooltip {
+            position: absolute;
+            top: 100%; /* Position below the chemical card */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            white-space: normal; /* Allow text to wrap */
+            max-width: 250px; /* Limit width */
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        .chemical-card:hover .chemical-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        .chemical-tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent rgba(0, 0, 0, 0.85) transparent;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -129,7 +197,7 @@
         
         <div class="mb-6 p-4 bg-white rounded shadow">
             <h3 class="text-xl font-semibold text-gray-700 mb-3">Hóa Chất Của Bạn</h3>
-            <div id="userChemicalsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 min-h-[100px] bg-gray-50 p-2 rounded border">
+            <div id="userChemicalsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 min-h-[100px] bg-gray-50 p-2 rounded border">
                 <p class="text-gray-500 col-span-full text-center py-4">Chưa có hóa chất nào được lưu.</p>
             </div>
         </div>
@@ -670,7 +738,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     const chemicalId = docSnap.id;
                     console.log(`[onSnapshot] Processing chemical: ${chemicalData.name} (ID: ${chemicalId})`);
                     const chemicalElement = document.createElement('div');
-                    chemicalElement.className = 'p-3 bg-white border rounded shadow-sm cursor-pointer hover:shadow-md transition-shadow';
+                    chemicalElement.className = 'chemical-card p-3 bg-white border rounded shadow-sm cursor-pointer hover:shadow-md transition-shadow'; // Added chemical-card class
                     chemicalElement.setAttribute('data-chemical-id', chemicalId);
                     // Sử dụng màu dung dịch cho nền và màu viền (nhạt hơn một chút để dễ nhìn)
                     const bgColor = chemicalData.solutionColor || 'rgba(200,200,200,0.7)';
@@ -684,6 +752,16 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     formulaEl.className = 'text-xs text-gray-600 mb-2 truncate';
                     formulaEl.textContent = `(${chemicalData.formula || 'N/A'})`;
                     chemicalElement.appendChild(formulaEl);
+
+                    // Tooltip element
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'chemical-tooltip';
+                    tooltip.innerHTML = `
+                        <strong>${chemicalData.name || 'N/A'}</strong> (${chemicalData.formula || 'N/A'})<br>
+                        ${chemicalData.description ? chemicalData.description.substring(0, 100) + (chemicalData.description.length > 100 ? '...' : '') : 'Không mô tả.'}
+                    `;
+                    chemicalElement.appendChild(tooltip);
+
                     const deleteButton = document.createElement('button');
                     deleteButton.innerHTML = '&times;'; 
                     deleteButton.className = 'absolute top-1 right-1 text-xs bg-red-400 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center focus:outline-none';
@@ -1310,13 +1388,14 @@ Output chỉ là JSON object.
         function resetBeaker() {
             konvaChemicalsInBeaker = [];
             stopAllKonvaEffects();
-            if (konvaSolution) { // Add check for konvaSolution
+            // Add checks for konvaSolution and konvaBeaker before accessing their properties
+            if (konvaSolution && konvaBeaker) { 
                 konvaSolution.height(0); // Reset height to 0
                 konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - KONVA_SOLUTION_PADDING_BASE); // Move to bottom
                 konvaSolution.visible(false); // Make invisible
                 konvaSolution.fill('rgba(173, 216, 230, 0.3)'); // Reset to default transparent-ish blue
             }
-            if (konvaLayer) konvaLayer.batchDraw(); // Add check for konvaLayer
+            if (konvaLayer) konvaLayer.batchDraw(); 
             document.getElementById('responseContainer').textContent = "Cốc đã được làm sạch.";
             showToast("Cốc đã được làm sạch.");
 
@@ -1367,7 +1446,7 @@ Output chỉ là JSON object.
                 });
             }
             konvaStage.batchDraw();
-            if (konvaEffectsLayer) konvaEffectsLayer.batchDraw(); // Add check for konvaEffectsLayer
+            if (konvaEffectsLayer) konvaEffectsLayer.batchDraw(); 
         }
 
     </script>
