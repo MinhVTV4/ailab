@@ -396,6 +396,7 @@
         // NEW: Experiment related variables
         let currentExperimentId = null; // ID of the currently loaded/saved experiment
         let currentExperimentData = null; // Data of the currently loaded experiment
+        let isExperimentModified = false; // Track if the current experiment in beaker is modified
 
         const loginFormContainer = document.getElementById('login-form-container');
         const registerFormContainer = document.getElementById('register-form-container');
@@ -781,6 +782,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 return;
             }
             console.log(`[loadUserChemicals] Loading chemicals for user: ${currentUserId} and appId: ${appId}`);
+            userChemicalsContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center py-4">Đang tải hóa chất...</p>'; // Loading state
             if (unsubscribeUserChemicals) {
                 unsubscribeUserChemicals();
                 console.log("[loadUserChemicals] Unsubscribed from previous chemical listener.");
@@ -908,6 +910,11 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 return;
             }
 
+            // Show loading state for button
+            const originalButtonText = saveExperimentButton.innerHTML;
+            saveExperimentButton.innerHTML = '<svg class="animate-spin h-5 w-5 mr-3 inline-block" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang lưu...';
+            saveExperimentButton.disabled = true;
+
             try {
                 const experimentDataToSave = {
                     name: name,
@@ -935,10 +942,16 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 }
                 currentExperimentData = experimentDataToSave; // Set as current
                 experimentNameInput.value = ''; // Clear input
+                isExperimentModified = false; // Mark as saved
+                updateExperimentNameDisplay(); // Update display to remove asterisk
             }
             catch (error) {
                 console.error("Lỗi khi lưu thí nghiệm:", error);
                 showToast(`Lỗi khi lưu thí nghiệm: ${error.message}`);
+            } finally {
+                // Restore button state
+                saveExperimentButton.innerHTML = originalButtonText;
+                saveExperimentButton.disabled = false;
             }
         }
 
@@ -948,6 +961,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 return;
             }
             console.log(`[loadUserExperiments] Loading experiments for user: ${currentUserId}`);
+            userExperimentsContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center py-4">Đang tải thí nghiệm...</p>'; // Loading state
             if (unsubscribeUserExperiments) {
                 unsubscribeUserExperiments();
                 console.log("[loadUserExperiments] Unsubscribed from previous experiment listener.");
@@ -1037,6 +1051,8 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 document.getElementById('responseContainer').textContent = "Thí nghiệm đã tải không có hóa chất.";
                 showToast(`Thí nghiệm "${experimentData.name}" không có hóa chất.`);
             }
+            isExperimentModified = false; // Mark as not modified after loading
+            updateExperimentNameDisplay(); // Update display to remove asterisk
         }
 
         async function deleteExperiment(experimentId) {
@@ -1095,6 +1111,8 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             currentExperimentId = null;
             currentExperimentData = null;
             experimentNameInput.value = '';
+            isExperimentModified = false; // Reset modified flag
+            updateExperimentNameDisplay(); // Update display
         }
 
         let konvaStage, konvaLayer, konvaEffectsLayer; 
@@ -1102,6 +1120,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
         let konvaChemicalsInBeaker = []; 
         let konvaBubbleAnimation, konvaSmokeAnimation, konvaPrecipitateAnimation, konvaWaveAnimation; 
         let konvaWaveLine; 
+        let konvaExperimentNameText; // Konva.Text for experiment name
 
         const KONVA_INITIAL_STAGE_WIDTH = 600;
         const KONVA_INITIAL_STAGE_HEIGHT = 400;
@@ -1116,7 +1135,8 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             // Prevent re-initialization if already active
             if (konvaStage && document.getElementById('konva-stage-container').hasChildNodes()) { 
                 console.log("[initializeLabKonva] Konva stage already exists, skipping re-initialization.");
-                konvaStage.batchDraw();
+                // Ensure existing Konva elements are updated if scale has changed
+                fitKonvaStageToParent(); 
                 return;
             }
             const konvaStageContainer = document.getElementById('konva-stage-container');
@@ -1203,10 +1223,46 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             }, konvaLayer);
             konvaWaveAnimation.start();
 
+            // Konva Text for experiment name
+            konvaExperimentNameText = new Konva.Text({
+                x: getKonvaResponsiveValue(KONVA_INITIAL_STAGE_WIDTH / 2, KONVA_INITIAL_STAGE_WIDTH, currentW),
+                y: getKonvaResponsiveValue(20, KONVA_INITIAL_STAGE_HEIGHT, currentH),
+                text: 'Thí nghiệm mới',
+                fontSize: getKonvaResponsiveValue(18, KONVA_INITIAL_STAGE_WIDTH, currentW),
+                fill: '#374151', // text-gray-700
+                align: 'center',
+                verticalAlign: 'middle',
+            });
+            konvaExperimentNameText.offsetX(konvaExperimentNameText.width() / 2); // Center text
+            konvaLayer.add(konvaExperimentNameText);
+            updateExperimentNameDisplay(); // Initial display
+
             updateKonvaSolutionVisualState(); 
             window.addEventListener('resize', fitKonvaStageToParent);
             fitKonvaStageToParent(); 
             console.log("[initializeLabKonva] Konva initialized.");
+
+            // Add drag events for beaker highlighting
+            konvaBeaker.on('dragenter', function(e) {
+                if (e.target.name() === 'dynamic-chemical') { // Only highlight if a chemical is dragging over
+                    konvaBeaker.stroke('green');
+                    konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))); // Thicker green border
+                    konvaBeaker.shadowColor('green');
+                    konvaBeaker.shadowBlur(getKonvaResponsiveValue(15, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())); // More intense shadow
+                    konvaBeaker.getLayer().batchDraw();
+                }
+            });
+
+            konvaBeaker.on('dragleave', function(e) {
+                if (e.target.name() === 'dynamic-chemical') {
+                    // Revert to original styling
+                    konvaBeaker.stroke('black');
+                    konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())));
+                    konvaBeaker.shadowColor('black');
+                    konvaBeaker.shadowBlur(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                    konvaBeaker.getLayer().batchDraw();
+                }
+            });
         }
         
         function getKonvaResponsiveValue(baseValue, baseStageDim, currentDim) {
@@ -1267,55 +1323,55 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             });
 
             // NEW: Draw a more realistic bottle shape with body, neck, and cap
-            const bottleBodyWidth = chemicalSize.width * 0.7; // Thân lọ nhỏ hơn một chút
-            const bottleBodyHeight = chemicalSize.height * 0.9; // Thân lọ cao hơn
-            const bottleNeckWidth = bottleBodyWidth * 0.4; // Cổ lọ hẹp hơn
+            const bottleBodyWidth = chemicalSize.width * 0.7; 
+            const bottleBodyHeight = chemicalSize.height * 0.9; 
+            const bottleNeckWidth = bottleBodyWidth * 0.4; 
             const bottleNeckHeight = chemicalSize.height * 0.3;
             const bottleCapHeight = chemicalSize.height * 0.15;
-            const bottleCapWidth = bottleNeckWidth * 1.5; // Nắp rộng hơn cổ lọ một chút
+            const bottleCapWidth = bottleNeckWidth * 1.5; 
 
             const bottleBody = new Konva.Rect({
                 x: (chemicalSize.width - bottleBodyWidth) / 2,
-                y: bottleCapHeight + bottleNeckHeight, // Vị trí Y tính từ đỉnh của Group
+                y: bottleCapHeight + bottleNeckHeight, 
                 width: bottleBodyWidth,
                 height: bottleBodyHeight,
-                fillLinearGradientStartPoint: { x: 0, y: 0 }, // Gradient cho hiệu ứng 3D
+                fillLinearGradientStartPoint: { x: 0, y: 0 }, 
                 fillLinearGradientEndPoint: { x: bottleBodyWidth, y: bottleBodyHeight },
                 fillLinearGradientColorStops: [0, chemicalData.solutionColor.replace(/[\d\.]+\)$/, '0.6)'), 0.5, chemicalData.solutionColor.replace(/[\d\.]+\)$/, '0.8)'), 1, chemicalData.solutionColor.replace(/[\d\.]+\)$/, '0.6)')],
                 stroke: 'black',
                 strokeWidth: 1,
-                cornerRadius: getKonvaResponsiveValue(10), // Bo tròn góc thân lọ
-                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(6), shadowOpacity: 0.3, // Đổ bóng
+                cornerRadius: getKonvaResponsiveValue(10), 
+                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(6), shadowOpacity: 0.3, 
                 shadowOffsetX: getKonvaResponsiveValue(3), shadowOffsetY: getKonvaResponsiveValue(3),
-                name: 'bottle-body' // Thêm tên để dễ tìm kiếm khi scale
+                name: 'bottle-body' 
             });
 
             const bottleNeck = new Konva.Rect({
                 x: (chemicalSize.width - bottleNeckWidth) / 2,
-                y: bottleCapHeight, // Vị trí Y tính từ đỉnh của Group
+                y: bottleCapHeight, 
                 width: bottleNeckWidth,
                 height: bottleNeckHeight,
-                fill: bottleBody.fill(), // Màu giống thân lọ
+                fill: bottleBody.fill(), 
                 stroke: 'black',
                 strokeWidth: 1,
-                cornerRadius: getKonvaResponsiveValue(3), // Bo tròn góc cổ lọ
+                cornerRadius: getKonvaResponsiveValue(3), 
                 shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(3), shadowOpacity: 0.2,
                 shadowOffsetX: getKonvaResponsiveValue(1), shadowOffsetY: getKonvaResponsiveValue(1),
-                name: 'bottle-neck' // Thêm tên để dễ tìm kiếm khi scale
+                name: 'bottle-neck' 
             });
 
             const bottleCap = new Konva.Rect({
                 x: (chemicalSize.width - bottleCapWidth) / 2,
-                y: 0, // Đặt ở vị trí cao nhất của Group
+                y: 0, 
                 width: bottleCapWidth,
                 height: bottleCapHeight,
-                fill: 'gray', // Màu nắp
+                fill: 'gray', 
                 stroke: 'black',
                 strokeWidth: 1,
-                cornerRadius: getKonvaResponsiveValue(3), // Bo tròn góc nắp
+                cornerRadius: getKonvaResponsiveValue(3), 
                 shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(2), shadowOpacity: 0.2,
                 shadowOffsetX: getKonvaResponsiveValue(1), shadowOffsetY: getKonvaResponsiveValue(1),
-                name: 'bottle-cap' // Thêm tên để dễ tìm kiếm khi scale
+                name: 'bottle-cap' 
             });
 
             group.add(bottleBody);
@@ -1332,9 +1388,9 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 height: bottleBody.height(), 
                 align: 'center', 
                 verticalAlign: 'middle',
-                x: bottleBody.x(), // Đặt X trùng với thân lọ
-                y: bottleBody.y() + (bottleBody.height() - getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())) / 2, // Căn giữa Y trên thân lọ
-                name: 'bottle-text' // Thêm tên để dễ tìm kiếm khi scale
+                x: bottleBody.x(), 
+                y: bottleBody.y() + (bottleBody.height() - getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())) / 2, 
+                name: 'bottle-text' 
             });
             group.add(text);
 
@@ -1363,11 +1419,33 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     showToast(`Đã thêm ${droppedChemicalData.name} vào cốc.`);
                     konvaChemicalsInBeaker.push(droppedChemicalData); 
                     console.log("[Konva DragEnd] Chemicals in beaker:", JSON.stringify(konvaChemicalsInBeaker.map(c => c.name)));
+                    
+                    // NEW: Soft "drop" animation
+                    new Konva.Tween({
+                        node: this, // The chemical group
+                        duration: 0.3,
+                        scaleX: 0.5,
+                        scaleY: 0.5,
+                        opacity: 0,
+                        y: this.y() + getKonvaResponsiveValue(50, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height()), // Move slightly down
+                        onFinish: () => {
+                            this.destroy(); // Destroy after animation
+                            konvaLayer.batchDraw(); // Redraw layer to remove it visually
+                        }
+                    }).play();
+
                     updateKonvaSolutionVisualState(); 
                     triggerKonvaReactionAI(); 
-                    this.destroy(); // Remove the chemical graphic from the canvas once dropped into the beaker
+                    isExperimentModified = true; // Mark as modified
+                    updateExperimentNameDisplay(); // Update display with asterisk
+
                 } 
-                konvaLayer.batchDraw();
+                // Always revert beaker highlight when drag ends
+                konvaBeaker.stroke('black');
+                konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())));
+                konvaBeaker.shadowColor('black');
+                konvaBeaker.shadowBlur(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaLayer.batchDraw(); // Redraw beaker if not already handled by drop animation
             });
             konvaLayer.batchDraw();
         }
@@ -1386,6 +1464,12 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             stopAllKonvaEffects(); 
             const chemicalNamesInBeaker = konvaChemicalsInBeaker.map(c => c.name).join(', ');
             document.getElementById('responseContainer').textContent = `Đang phân tích phản ứng giữa: ${chemicalNamesInBeaker}...`;
+            // Show loading state for button
+            const originalPromptButtonText = sendPromptButtonLab.innerHTML;
+            sendPromptButtonLab.innerHTML = '<svg class="animate-spin h-5 w-5 mr-3 inline-block" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Đang gửi...';
+            sendPromptButtonLab.disabled = true;
+
+
             // Sending more detailed chemical data to AI
             const detailedChemicalsForAI = konvaChemicalsInBeaker.map(chem => ({
                 name: chem.name, 
@@ -1439,6 +1523,9 @@ Output chỉ là JSON object.
                 document.getElementById('responseContainer').textContent = `Lỗi AI: ${error.message}`;
                 geminiApiErrorNotice.classList.remove('hidden'); 
                 geminiApiErrorNotice.innerHTML = `<p class="font-bold">Lỗi kết nối Gemini API!</p><p>${error.message}. Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật trên Google Cloud Console.</p>`;
+            } finally {
+                sendPromptButtonLab.innerHTML = originalPromptButtonText;
+                sendPromptButtonLab.disabled = false;
             }
             konvaLayer.batchDraw();
             konvaEffectsLayer.batchDraw();
@@ -1631,12 +1718,11 @@ Output chỉ là JSON object.
             showToast("Cốc đã được làm sạch.");
 
             // Clear current experiment state if not already cleared by loadExperimentIntoBeaker
-            if (currentExperimentId !== null || currentExperimentData !== null) {
-                currentExperimentId = null;
-                currentExperimentData = null;
-                experimentNameInput.value = '';
-                showToast("Đã xóa trạng thái thí nghiệm hiện tại.");
-            }
+            currentExperimentId = null;
+            currentExperimentData = null;
+            experimentNameInput.value = '';
+            isExperimentModified = false; // Reset modified flag
+            updateExperimentNameDisplay(); // Update display
         }
 
         document.getElementById('resetBeakerButton').addEventListener('click', resetBeaker);
@@ -1659,6 +1745,17 @@ Output chỉ là JSON object.
             }
         });
 
+        // NEW: Function to update Konva Text for experiment name display
+        function updateExperimentNameDisplay() {
+            if (konvaExperimentNameText) {
+                let name = currentExperimentData ? currentExperimentData.name : 'Thí nghiệm mới';
+                konvaExperimentNameText.text(`Tên thí nghiệm: ${name}${isExperimentModified ? ' *' : ''}`);
+                // Re-center text horizontally
+                konvaExperimentNameText.x(getKonvaResponsiveValue(KONVA_INITIAL_STAGE_WIDTH / 2, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaExperimentNameText.offsetX(konvaExperimentNameText.width() / 2);
+                konvaLayer.batchDraw();
+            }
+        }
 
         function fitKonvaStageToParent() {
             const container = document.getElementById('konva-outer-container');
@@ -1722,6 +1819,14 @@ Output chỉ là JSON object.
                     konvaWaveLine.stroke(waveStrokeColor);
                 }, konvaLayer);
                 konvaWaveAnimation.start();
+            }
+
+            // Update experiment name text position
+            if (konvaExperimentNameText) {
+                konvaExperimentNameText.x(getKonvaResponsiveValue(KONVA_INITIAL_STAGE_WIDTH / 2, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaExperimentNameText.y(getKonvaResponsiveValue(20, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height()));
+                konvaExperimentNameText.fontSize(getKonvaResponsiveValue(18, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaExperimentNameText.offsetX(konvaExperimentNameText.width() / 2); // Recalculate offset after font size change
             }
 
             // Add check for konvaLayer before using find()
