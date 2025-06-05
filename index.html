@@ -77,59 +77,65 @@
         }
         /* NEW: Styles for smaller chemical cards */
         #userChemicalsContainer .chemical-card {
-            padding: 0.5rem; /* Reduced padding */
-            font-size: 0.75rem; /* Smaller font size */
-            position: relative; /* Needed for tooltip positioning */
-            display: flex; /* Use flexbox for layout */
-            flex-direction: column; /* Stack content vertically */
-            align-items: center; /* Center content horizontally */
-            text-align: center; /* Center text */
-            height: 120px; /* Fixed height for consistency */
-            justify-content: space-between; /* Distribute space */
+            padding: 0.4rem; /* Reduced padding */
+            font-size: 0.75rem; /* Base font size */
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            height: 90px; /* Reduced fixed height */
+            justify-content: space-between;
         }
         #userChemicalsContainer .chemical-card h4 {
-            font-size: 1rem; /* Larger font size for name */
+            font-size: 0.75rem; /* Smaller font size for name */
             margin-bottom: 0.25rem;
-            flex-shrink: 0; /* Prevent shrinking */
-            margin-top: 1.5rem; /* Pushed down to avoid buttons */
+            flex-shrink: 0;
+            margin-top: 0.5rem; /* Pushed down to avoid buttons */
+            line-height: 1.2; /* Tighter line height */
+            max-height: 2.4em; /* Limit to 2 lines */
+            overflow: hidden; /* Hide overflow */
+            text-overflow: ellipsis; /* Add ellipsis if overflow */
         }
         #userChemicalsContainer .chemical-card p {
-            font-size: 0.75rem; /* Larger for formula */
-            margin-bottom: auto; /* Push formula to top of remaining space */
-            flex-grow: 1; /* Allow to grow */
+            font-size: 1.125rem; /* Larger font size for formula */
+            font-weight: bold; /* Make formula bold */
+            margin-bottom: auto;
+            flex-grow: 1;
             display: flex;
-            align-items: center; /* Center formula text vertically */
+            align-items: center;
+            justify-content: center; /* Center formula horizontally */
         }
         /* Responsive grid for chemical cards */
         #userChemicalsContainer {
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Even smaller min width */
-            gap: 0.4rem; /* Reduced gap */
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
+            gap: 0.4rem; 
         }
         @media (min-width: 640px) { /* sm */
             #userChemicalsContainer {
-                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
             }
         }
         @media (min-width: 768px) { /* md */
             #userChemicalsContainer {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
             }
         }
         @media (min-width: 1024px) { /* lg */
             #userChemicalsContainer {
-                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
             }
         }
         @media (min-width: 1280px) { /* xl */
             #userChemicalsContainer {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             }
         }
 
         /* Tooltip styles */
         .chemical-tooltip {
             position: absolute;
-            top: calc(100% + 5px); /* Position slightly below the card */
+            top: calc(100% + 5px); 
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(0, 0, 0, 0.85);
@@ -167,25 +173,25 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 5px; /* Thin strip at the top */
+            height: 5px; 
             border-top-left-radius: 0.25rem;
             border-top-right-radius: 0.25rem;
         }
         .info-icon-btn {
             position: absolute;
-            top: 0.25rem; /* Adjusted position */
-            left: 0.25rem; /* Adjusted position */
-            background-color: rgba(255, 255, 255, 0.7); /* Slightly transparent white */
-            color: #4B5563; /* Dark gray for icon */
-            border-radius: 9999px; /* Full rounded */
-            width: 1.25rem; /* Small size */
-            height: 1.25rem; /* Small size */
+            top: 0.25rem; 
+            left: 0.25rem; 
+            background-color: rgba(255, 255, 255, 0.7); 
+            color: #4B5563; 
+            border-radius: 9999px; 
+            width: 1.25rem; 
+            height: 1.25rem; 
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0.9;
             transition: opacity 0.15s ease-in-out;
-            z-index: 10; /* Ensure it's above other elements */
+            z-index: 10; 
             cursor: pointer;
         }
         .info-icon-btn:hover {
@@ -193,13 +199,13 @@
             background-color: rgba(255, 255, 255, 1);
         }
         .info-icon-btn svg {
-            width: 0.75rem; /* SVG size */
-            height: 0.75rem; /* SVG size */
+            width: 0.75rem; 
+            height: 0.75rem; 
         }
         .delete-btn {
-            z-index: 10; /* Ensure it's above other elements */
-            top: 0.25rem; /* Adjusted position */
-            right: 0.25rem; /* Adjusted position */
+            z-index: 10; 
+            top: 0.25rem; 
+            right: 0.25rem; 
         }
     </style>
 </head>
@@ -709,7 +715,7 @@
 - "stateAtSTP": (string, optional) Trạng thái vật lý ở điều kiện tiêu chuẩn (STP) (ví dụ: "liquid", "solid", "gas").
 - "isSoluble": (boolean, optional) Khả năng tan trong nước.
 - "ionFormation": (object, optional) Các ion tạo thành khi hòa tan trong nước. Ví dụ: {"cation": "H+", "anion": "Cl-"}.
-- "colorWhenDry": (string, optional) Màu sắc của hóa chất khi ở dạng tinh khiết (không hòa tan trong nước, dạng rắn/lỏng nguyên chất).
+- "colorWhenDry": (string, optional) Màu sắc của hóa chất khi ở dạng tinh khiết (không hòa hòa tan trong nước, dạng rắn/lỏng nguyên chất).
 - "density_g_cm3": (number, optional) Khối lượng riêng (g/cm³) nếu có.
 - "boiling_point_C": (number or string, optional) Nhiệt độ sôi (°C) nếu có.
 - "melting_point_C": (number or string, optional) Nhiệt độ nóng chảy (°C) nếu có.
@@ -872,11 +878,11 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 chemicalElement.style.borderColor = typeColor; 
 
                 const nameEl = document.createElement('h4');
-                nameEl.className = 'font-semibold mb-1 truncate'; // Keep truncate
+                nameEl.className = 'font-semibold mb-1 truncate'; 
                 nameEl.textContent = chemicalData.name || "Chưa đặt tên";
                 chemicalElement.appendChild(nameEl);
                 const formulaEl = document.createElement('p');
-                formulaEl.className = 'text-xs text-gray-600 mb-2 truncate'; // Keep truncate
+                formulaEl.className = 'text-xs text-gray-600 mb-2 truncate'; 
                 formulaEl.textContent = `(${chemicalData.formula || 'N/A'})`;
                 chemicalElement.appendChild(formulaEl);
 
