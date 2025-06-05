@@ -679,7 +679,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             } catch (error) {
                 console.error("Lỗi khi gọi Gemini API hoặc parse JSON:", error);
                 showToast(`Lỗi AI: ${error.message}`); // Replaced textContent with toast
-                geminiApiErrorNotice.classList.remove('hidden'); // Hiển thị thông báo lỗi API
+                geminiApiErrorNotice.classList.remove('hidden'); 
                 geminiApiErrorNotice.innerHTML = `<p class="font-bold">Lỗi kết nối Gemini API!</p><p>${error.message}. Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật trên Google Cloud Console.</p>`;
                 currentSelectedAiChemical = null;
             }
@@ -1049,7 +1049,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 y: getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, currentH),
                 width: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentW).width,
                 height: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentW).height, 
-                fill: 'rgba(233, 233, 233, 0.5)',
+                fill: 'rgba(255, 255, 255, 0.7)', // Changed to white for better observation
                 stroke: 'black',
                 strokeWidth: Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, currentW)),
                 cornerRadius: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW), 
@@ -1068,12 +1068,12 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             konvaLayer.add(konvaSolution); 
 
             // NEW: Wavy liquid surface line
-            const waveAmplitude = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW); // Increased amplitude
+            const waveAmplitude = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW); 
             const waveFrequency = 0.05; 
 
             konvaWaveLine = new Konva.Line({
                 stroke: 'white', 
-                strokeWidth: getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, currentW), // Increased stroke width
+                strokeWidth: getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, currentW), 
                 lineCap: 'round',
                 lineJoin: 'round',
                 name: 'waveLine',
@@ -1096,7 +1096,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 const solutionWidth = konvaSolution.width();
 
                 const points = [];
-                let currentWaveOffset = (frame.time * 0.008) % (Math.PI * 2); // Increased speed
+                let currentWaveOffset = (frame.time * 0.008) % (Math.PI * 2); 
                 for (let i = 0; i <= solutionWidth; i += 5) { 
                     const y = solutionTopY + waveAmplitude * Math.sin(i * waveFrequency + currentWaveOffset);
                     points.push(solutionLeftX + i, y);
@@ -1175,27 +1175,56 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             const spawnX = getKonvaResponsiveValue(50 + Math.random() * 100, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
             const spawnY = getKonvaResponsiveValue(50 + Math.random() * 100, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height());
             const chemicalSize = getKonvaResponsiveSize(60, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()); 
+            
             const group = new Konva.Group({
                 x: spawnX, y: spawnY, draggable: true, name: 'dynamic-chemical', 
                 id: firestoreId, attrs: { chemicalData: chemicalData } 
             });
-            const rect = new Konva.Rect({
-                width: chemicalSize.width, height: chemicalSize.height * 1.2, 
+
+            // NEW: Draw a bottle shape
+            const bottleBodyHeight = chemicalSize.height * 0.8;
+            const bottleNeckHeight = chemicalSize.height * 0.4; // Tăng chiều cao cổ lọ
+            const bottleBodyWidth = chemicalSize.width;
+            const bottleNeckWidth = chemicalSize.width * 0.5; // Tăng chiều rộng cổ lọ
+
+            const bottleBody = new Konva.Rect({
+                width: bottleBodyWidth,
+                height: bottleBodyHeight,
                 fill: chemicalData.solutionColor || 'rgba(200,200,200,0.7)',
-                stroke: 'black', strokeWidth: 1, 
-                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(5), shadowOpacity: 0.4, // Increased shadow
-                shadowOffsetX: getKonvaResponsiveValue(3), 
-                shadowOffsetY: getKonvaResponsiveValue(3), 
-                cornerRadius: getKonvaResponsiveValue(8), 
+                stroke: 'black',
+                strokeWidth: 1,
+                cornerRadius: getKonvaResponsiveValue(8), // Bo tròn góc thân lọ
+                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(5), shadowOpacity: 0.4,
+                shadowOffsetX: getKonvaResponsiveValue(3), shadowOffsetY: getKonvaResponsiveValue(3),
             });
-            group.add(rect);
+
+            const bottleNeck = new Konva.Rect({
+                x: (bottleBodyWidth - bottleNeckWidth) / 2, // Canh giữa cổ lọ
+                y: -bottleNeckHeight, // Đặt phía trên thân lọ
+                width: bottleNeckWidth,
+                height: bottleNeckHeight,
+                fill: bottleBody.fill(), // Màu giống thân lọ
+                stroke: 'black',
+                strokeWidth: 1,
+                cornerRadius: getKonvaResponsiveValue(3), // Bo tròn góc cổ lọ
+            });
+
+            group.add(bottleBody);
+            group.add(bottleNeck);
+
+            // Text should be on the bottle body
             const text = new Konva.Text({
                 text: chemicalData.formula || chemicalData.name.substring(0,10),
                 fontSize: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()),
-                fill: 'black', padding: 5, width: rect.width(),
-                align: 'center', verticalAlign: 'middle', height: rect.height()
+                fill: 'black', 
+                padding: getKonvaResponsiveValue(5), 
+                width: bottleBody.width(),
+                height: bottleBody.height(), // Chiều cao bằng thân lọ
+                align: 'center', 
+                verticalAlign: 'middle',
             });
             group.add(text);
+
             konvaLayer.add(group);
             group.moveToTop(); 
 
@@ -1542,8 +1571,18 @@ Output chỉ là JSON object.
             if (konvaLayer) {
                 konvaLayer.find('.dynamic-chemical').forEach(group => {
                     const chemicalSize = getKonvaResponsiveSize(60, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
-                    group.findOne('Rect').width(chemicalSize.width).height(chemicalSize.height * 1.2);
-                    group.findOne('Text').fontSize(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())).width(chemicalSize.width);
+                    // Update bottle body and neck sizes based on new scale
+                    const bottleBodyWidth = chemicalSize.width;
+                    const bottleBodyHeight = chemicalSize.height * 0.8;
+                    const bottleNeckHeight = chemicalSize.height * 0.4;
+                    const bottleNeckWidth = chemicalSize.width * 0.5;
+
+                    group.findOne('Rect.bottle-body').width(bottleBodyWidth).height(bottleBodyHeight);
+                    group.findOne('Rect.bottle-neck').x((bottleBodyWidth - bottleNeckWidth) / 2).y(-bottleNeckHeight).width(bottleNeckWidth).height(bottleNeckHeight);
+                    group.findOne('Text').fontSize(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())).width(bottleBodyWidth).height(bottleBodyHeight); // Text on body
+                    group.findOne('Rect.bottle-body').cornerRadius(getKonvaResponsiveValue(8, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())); // Update corner radius
+                    group.findOne('Rect.bottle-neck').cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())); // Update corner radius
+
                 });
             }
             konvaStage.batchDraw();
