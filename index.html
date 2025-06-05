@@ -1008,7 +1008,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
         }
 
         let konvaStage, konvaLayer, konvaEffectsLayer; 
-        let konvaBeaker, konvaSolution, konvaBeakerLabel;
+        let konvaBeaker, konvaSolution; 
         let konvaChemicalsInBeaker = []; 
         let konvaBubbleAnimation, konvaSmokeAnimation, konvaPrecipitateAnimation, konvaWaveAnimation; 
         let konvaWaveLine; 
@@ -1044,22 +1044,59 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             konvaStage.add(konvaLayer);
             konvaEffectsLayer = new Konva.Layer();
             konvaStage.add(konvaEffectsLayer);
-            konvaBeaker = new Konva.Rect({
-                x: getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, currentW),
-                y: getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, currentH),
-                width: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentW).width,
-                height: getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentW).height, 
-                fill: 'rgba(255, 255, 255, 0.7)', // Changed to white for better observation
+
+            // NEW: More realistic beaker shape (trapezoid body + thin base)
+            const responsiveBeakerTopWidth = getKonvaResponsiveValue(KONVA_BEAKER_BASE_SIZE.width + 20, KONVA_INITIAL_STAGE_WIDTH, currentW); 
+            const responsiveBeakerBottomWidth = getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentW).width;
+            const responsiveBeakerBodyHeight = getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentW).height;
+            const responsiveBeakerBaseHeight = getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW); 
+
+            const beakerX = getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, currentW);
+            const beakerY = getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, currentH);
+
+            const centerX = beakerX + responsiveBeakerBottomWidth / 2;
+            const topX1 = centerX - responsiveBeakerTopWidth / 2;
+            const topX2 = centerX + responsiveBeakerTopWidth / 2;
+            const bottomX1 = beakerX;
+            const bottomX2 = beakerX + responsiveBeakerBottomWidth;
+
+            konvaBeaker = new Konva.Shape({
+                sceneFunc: function (context, shape) {
+                    context.beginPath();
+                    // Main body of the beaker (trapezoid)
+                    context.moveTo(topX1, beakerY); // Top-left
+                    context.lineTo(topX2, beakerY); // Top-right
+                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight); // Bottom-right
+                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight); // Bottom-left
+                    context.closePath();
+                    // Base of the beaker (rectangle below body)
+                    context.moveTo(bottomX1, beakerY + responsiveBeakerBodyHeight); // Re-use bottom-left of body
+                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight); // Re-use bottom-right of body
+                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight); // Bottom-right of base
+                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight); // Bottom-left of base
+                    context.closePath();
+                    context.fillStrokeShape(shape);
+                },
+                fillLinearGradientStartPoint: { x: beakerX, y: beakerY },
+                fillLinearGradientEndPoint: { x: beakerX + responsiveBeakerBottomWidth, y: beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight },
+                fillLinearGradientColorStops: [0, 'rgba(255,255,255,0.7)', 0.5, 'rgba(240,240,240,0.7)', 1, 'rgba(200,200,200,0.7)'],
                 stroke: 'black',
                 strokeWidth: Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, currentW)),
-                cornerRadius: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW), 
                 shadowColor: 'black',
-                shadowBlur: getKonvaResponsiveValue(8, KONVA_INITIAL_STAGE_WIDTH, currentW), // Increased shadow blur
-                shadowOffset: { x: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, currentW) }, // Increased shadow offset
-                shadowOpacity: 0.4, // Increased shadow opacity
-                name: 'beaker'
+                shadowBlur: getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW),
+                shadowOffset: { x: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW) },
+                shadowOpacity: 0.5,
+                name: 'beaker',
+                // Store original dimensions for responsiveness
+                originalTopWidth: KONVA_BEAKER_BASE_SIZE.width + 20,
+                originalBottomWidth: KONVA_BEAKER_BASE_SIZE.width,
+                originalBodyHeight: KONVA_BEAKER_BASE_SIZE.height,
+                originalBaseHeight: 10,
+                originalX: KONVA_BEAKER_BASE_X,
+                originalY: KONVA_BEAKER_BASE_Y
             });
             konvaLayer.add(konvaBeaker);
+
             konvaSolution = new Konva.Rect({
                 fill: 'rgba(173, 216, 230, 0.3)',
                 name: 'solution',
@@ -1067,7 +1104,6 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             });
             konvaLayer.add(konvaSolution); 
 
-            // NEW: Wavy liquid surface line
             const waveAmplitude = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW); 
             const waveFrequency = 0.05; 
 
@@ -1108,15 +1144,6 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             }, konvaLayer);
             konvaWaveAnimation.start();
 
-
-            const labelFontSize = Math.max(12, getKonvaResponsiveValue(20, KONVA_INITIAL_STAGE_WIDTH, currentW));
-            konvaBeakerLabel = new Konva.Text({
-                text: 'Cốc TN',
-                fontSize: labelFontSize,
-                fill: 'black',
-            });
-            konvaLayer.add(konvaBeakerLabel);
-            updateKonvaBeakerLabelPosition();
             updateKonvaSolutionVisualState(); 
             window.addEventListener('resize', fitKonvaStageToParent);
             fitKonvaStageToParent(); 
@@ -1131,35 +1158,46 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             return { width: baseDim * scale, height: baseDim * scale }; 
         }
 
-        function updateKonvaBeakerLabelPosition() {
-            if (!konvaBeaker || !konvaBeakerLabel) return;
-            konvaBeakerLabel.x(konvaBeaker.x() + konvaBeaker.width() / 2);
-            konvaBeakerLabel.y(konvaBeaker.y() + konvaBeaker.height() / 2);
-            konvaBeakerLabel.offsetX(konvaBeakerLabel.width() / 2);
-            konvaBeakerLabel.offsetY(konvaBeakerLabel.height() / 2);
-        }
+        // Removed updateKonvaBeakerLabelPosition since label is removed
         
         function updateKonvaSolutionVisualState() {
             if (!konvaSolution || !konvaBeaker || !konvaStage) { 
                 console.warn("[updateKonvaSolutionVisualState] Konva elements not fully initialized.");
                 return;
             }
-            console.log("[updateKonvaSolutionVisualState] Konva chemicals:", konvaChemicalsInBeaker.length);
+
+            // Adjust padding to match the new beaker shape (width and position of the inner liquid)
             const padding = getKonvaResponsiveValue(KONVA_SOLUTION_PADDING_BASE, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
-            konvaSolution.x(konvaBeaker.x() + padding);
-            konvaSolution.width(konvaBeaker.width() - 2 * padding);
+            
+            // The beaker's actual bottom width for the solution
+            const responsiveBeakerBottomWidth = getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).width;
+            
+            // Calculate solution width based on the bottom width of the beaker (minus padding)
+            konvaSolution.width(responsiveBeakerBottomWidth - 2 * padding);
+            
+            // Calculate solution X based on the beaker's X and current responsiveness
+            // This ensures the solution is centered horizontally within the beaker's base
+            const beakerCurrentX = konvaBeaker.x() + (konvaBeaker.width() - responsiveBeakerBottomWidth) / 2; // Beaker's original left edge + offset to its body's left edge
+            konvaSolution.x(beakerCurrentX + padding);
+
             if (konvaChemicalsInBeaker.length === 0) {
                 konvaSolution.height(0);
-                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - padding);
+                // Position at the very bottom of the beaker's body
+                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - padding); // Adjust Y based on beaker's final Y and padding
                 konvaSolution.visible(false);
                 if (konvaWaveLine) konvaWaveLine.visible(false); // Hide wave line
             } else {
                 const maxRise = getKonvaResponsiveValue(KONVA_MAX_LIQUID_RISE, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height());
                 const risePerChemicalDrop = maxRise / (konvaChemicalsInBeaker.length + 5); 
                 let targetHeight = Math.min(konvaChemicalsInBeaker.length * risePerChemicalDrop, maxRise);
-                targetHeight = Math.min(targetHeight, konvaBeaker.height() - 2 * padding);
+                // Ensure solution does not go above the top of the beaker's body (excluding top lip)
+                const beakerBodyTopY = konvaBeaker.y(); // Top of the beaker shape's body
+                const beakerBodyHeight = konvaBeaker.height(); // Height of the beaker shape's body
+                targetHeight = Math.min(targetHeight, beakerBodyHeight - 2 * padding);
+
                 konvaSolution.height(targetHeight);
-                konvaSolution.y(konvaBeaker.y() + konvaBeaker.height() - targetHeight - padding);
+                // Position solution from the bottom of the beaker's body
+                konvaSolution.y(beakerBodyTopY + beakerBodyHeight - targetHeight - padding);
                 konvaSolution.visible(true);
                 if (konvaWaveLine) konvaWaveLine.visible(true); // Show wave line
             }
@@ -1181,36 +1219,61 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 id: firestoreId, attrs: { chemicalData: chemicalData } 
             });
 
-            // NEW: Draw a bottle shape
-            const bottleBodyHeight = chemicalSize.height * 0.8;
-            const bottleNeckHeight = chemicalSize.height * 0.4; // Tăng chiều cao cổ lọ
-            const bottleBodyWidth = chemicalSize.width;
-            const bottleNeckWidth = chemicalSize.width * 0.5; // Tăng chiều rộng cổ lọ
+            // NEW: Draw a more realistic bottle shape with body, neck, and cap
+            const bottleBodyWidth = chemicalSize.width * 0.7; // Thân lọ nhỏ hơn một chút
+            const bottleBodyHeight = chemicalSize.height * 0.9; // Thân lọ cao hơn
+            const bottleNeckWidth = bottleBodyWidth * 0.4; // Cổ lọ hẹp hơn
+            const bottleNeckHeight = chemicalSize.height * 0.3;
+            const bottleCapHeight = chemicalSize.height * 0.15;
+            const bottleCapWidth = bottleNeckWidth * 1.5; // Nắp rộng hơn cổ lọ một chút
 
             const bottleBody = new Konva.Rect({
+                x: (chemicalSize.width - bottleBodyWidth) / 2,
+                y: bottleCapHeight + bottleNeckHeight, // Vị trí Y tính từ đỉnh của Group
                 width: bottleBodyWidth,
                 height: bottleBodyHeight,
-                fill: chemicalData.solutionColor || 'rgba(200,200,200,0.7)',
+                fillLinearGradientStartPoint: { x: 0, y: 0 }, // Gradient cho hiệu ứng 3D
+                fillLinearGradientEndPoint: { x: bottleBodyWidth, y: bottleBodyHeight },
+                fillLinearGradientColorStops: [0, chemicalData.solutionColor.replace(/[\d\.]+\)$/, '0.6)'), 0.5, chemicalData.solutionColor.replace(/[\d\.]+\)$/, '0.8)'), 1, chemicalData.solutionColor.replace(/[\d\.]+\)$/, '0.6)')],
                 stroke: 'black',
                 strokeWidth: 1,
-                cornerRadius: getKonvaResponsiveValue(8), // Bo tròn góc thân lọ
-                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(5), shadowOpacity: 0.4,
+                cornerRadius: getKonvaResponsiveValue(10), // Bo tròn góc thân lọ
+                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(6), shadowOpacity: 0.3, // Đổ bóng
                 shadowOffsetX: getKonvaResponsiveValue(3), shadowOffsetY: getKonvaResponsiveValue(3),
+                name: 'bottle-body' // Thêm tên để dễ tìm kiếm khi scale
             });
 
             const bottleNeck = new Konva.Rect({
-                x: (bottleBodyWidth - bottleNeckWidth) / 2, // Canh giữa cổ lọ
-                y: -bottleNeckHeight, // Đặt phía trên thân lọ
+                x: (chemicalSize.width - bottleNeckWidth) / 2,
+                y: bottleCapHeight, // Vị trí Y tính từ đỉnh của Group
                 width: bottleNeckWidth,
                 height: bottleNeckHeight,
                 fill: bottleBody.fill(), // Màu giống thân lọ
                 stroke: 'black',
                 strokeWidth: 1,
                 cornerRadius: getKonvaResponsiveValue(3), // Bo tròn góc cổ lọ
+                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(3), shadowOpacity: 0.2,
+                shadowOffsetX: getKonvaResponsiveValue(1), shadowOffsetY: getKonvaResponsiveValue(1),
+                name: 'bottle-neck' // Thêm tên để dễ tìm kiếm khi scale
+            });
+
+            const bottleCap = new Konva.Rect({
+                x: (chemicalSize.width - bottleCapWidth) / 2,
+                y: 0, // Đặt ở vị trí cao nhất của Group
+                width: bottleCapWidth,
+                height: bottleCapHeight,
+                fill: 'gray', // Màu nắp
+                stroke: 'black',
+                strokeWidth: 1,
+                cornerRadius: getKonvaResponsiveValue(3), // Bo tròn góc nắp
+                shadowColor: 'black', shadowBlur: getKonvaResponsiveValue(2), shadowOpacity: 0.2,
+                shadowOffsetX: getKonvaResponsiveValue(1), shadowOffsetY: getKonvaResponsiveValue(1),
+                name: 'bottle-cap' // Thêm tên để dễ tìm kiếm khi scale
             });
 
             group.add(bottleBody);
             group.add(bottleNeck);
+            group.add(bottleCap);
 
             // Text should be on the bottle body
             const text = new Konva.Text({
@@ -1219,9 +1282,12 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 fill: 'black', 
                 padding: getKonvaResponsiveValue(5), 
                 width: bottleBody.width(),
-                height: bottleBody.height(), // Chiều cao bằng thân lọ
+                height: bottleBody.height(), 
                 align: 'center', 
                 verticalAlign: 'middle',
+                x: bottleBody.x(), // Đặt X trùng với thân lọ
+                y: bottleBody.y() + (bottleBody.height() - getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())) / 2, // Căn giữa Y trên thân lọ
+                name: 'bottle-text' // Thêm tên để dễ tìm kiếm khi scale
             });
             group.add(text);
 
@@ -1335,13 +1401,13 @@ Output chỉ là JSON object.
             console.log("[KonvaEffect] Starting Bubbling with intensity:", intensity);
             if (konvaBubbleAnimation) konvaBubbleAnimation.stop();
             if (konvaEffectsLayer) konvaEffectsLayer.find('.bubble').forEach(n => n.destroy()); 
-            let interval = 80; // Tần suất tạo bong bóng nhanh hơn (từ 100)
+            let interval = 80; 
             let countPerInterval = 1;
 
             if (intensity === "low") { interval = 180; countPerInterval = 1; }
             else if (intensity === "medium") { interval = 80; countPerInterval = 1; }
-            else if (intensity === "high") { interval = 40; countPerInterval = 2; } // Nhiều bong bóng hơn, nhanh hơn
-            else if (intensity === "vigorous") { interval = 20; countPerInterval = 4; } // Nhiều bong bóng hơn nữa, rất nhanh
+            else if (intensity === "high") { interval = 40; countPerInterval = 2; } 
+            else if (intensity === "vigorous") { interval = 20; countPerInterval = 4; } 
 
             konvaBubbleAnimation = new Konva.Animation(frame => {
                 if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
@@ -1350,14 +1416,14 @@ Output chỉ là JSON object.
                         const bubble = new Konva.Circle({ 
                             x: konvaSolution.x() + Math.random() * konvaSolution.width(), 
                             y: konvaSolution.y() + konvaSolution.height() - 5,
-                            radius: Math.random() * 4 + 2, // Kích thước bong bóng lớn hơn (từ 3+1)
-                            fill: 'rgba(255, 255, 255, 0.8)', opacity: 0.9, name: 'bubble' // Opacity cao hơn
+                            radius: Math.random() * 4 + 2, 
+                            fill: 'rgba(255, 255, 255, 0.8)', opacity: 0.9, name: 'bubble' 
                         });
                         konvaEffectsLayer.add(bubble);
                         new Konva.Tween({
                             node: bubble,
-                            duration: Math.random() * 1.8 + 1.2, // Thời gian tồn tại dài hơn một chút
-                            y: konvaSolution.y() - 10, // Nổi cao hơn bề mặt
+                            duration: Math.random() * 1.8 + 1.2, 
+                            y: konvaSolution.y() - 10, 
                             opacity: 0, 
                             onFinish: () => bubble.destroy() 
                         }).play();
@@ -1371,31 +1437,31 @@ Output chỉ là JSON object.
             console.log("[KonvaEffect] Starting Smoke with intensity:", intensity);
             if (konvaSmokeAnimation) konvaSmokeAnimation.stop();
             if (konvaEffectsLayer) konvaEffectsLayer.find('.smoke').forEach(n => n.destroy()); 
-            let interval = 120; // Nhanh hơn một chút (từ 150)
+            let interval = 120; 
             let countPerInterval = 1;
 
             if (intensity === "low") { interval = 220; countPerInterval = 1; }
             else if (intensity === "medium") { interval = 120; countPerInterval = 1; }
-            else if (intensity === "high") { interval = 60; countPerInterval = 2; } // Nhiều hạt khói hơn, nhanh hơn
+            else if (intensity === "high") { interval = 60; countPerInterval = 2; } 
 
             konvaSmokeAnimation = new Konva.Animation(frame => {
                 if (!frame) return;
                 if (frame.timeDiff > interval) {
                     for (let i = 0; i < countPerInterval; i++) {
                         const smoke = new Konva.Ellipse({ 
-                            x: konvaBeaker.x() + konvaBeaker.width() / 2 + (Math.random() - 0.5) * konvaBeaker.width() * 0.7, // Rộng hơn một chút
-                            y: konvaBeaker.y() - 10, // Bắt đầu thấp hơn một chút so với miệng cốc
-                            radiusX: Math.random() * 12 + 8, // Kích thước lớn hơn
-                            radiusY: Math.random() * 8 + 6, // Kích thước lớn hơn
-                            fill: 'rgba(180,180,180,0.4)', opacity: 0.6, name: 'smoke' // Opacity cao hơn
+                            x: konvaBeaker.x() + konvaBeaker.width() / 2 + (Math.random() - 0.5) * konvaBeaker.width() * 0.7, 
+                            y: konvaBeaker.y() - 10, 
+                            radiusX: Math.random() * 12 + 8, 
+                            radiusY: Math.random() * 8 + 6, 
+                            fill: 'rgba(180,180,180,0.4)', opacity: 0.6, name: 'smoke' 
                         });
                         konvaEffectsLayer.add(smoke);
                         new Konva.Tween({
                             node: smoke,
-                            duration: Math.random() * 3 + 2, // Thời gian tồn tại dài hơn
-                            y: konvaBeaker.y() - 60, // Bay cao hơn
+                            duration: Math.random() * 3 + 2, 
+                            y: konvaBeaker.y() - 60, 
                             opacity: 0, 
-                            scaleX: 1.8, // Nở ra nhiều hơn
+                            scaleX: 1.8, 
                             scaleY: 1.8,
                             onFinish: () => smoke.destroy()
                         }).play();
@@ -1412,19 +1478,19 @@ Output chỉ là JSON object.
             
             konvaPrecipitateAnimation = new Konva.Animation(frame => {
                  if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
-                if (frame.timeDiff > 40 && Math.random() < 0.5) { // Tần suất nhanh hơn, nhiều hạt hơn
+                if (frame.timeDiff > 40 && Math.random() < 0.5) { 
                     const particle = new Konva.Circle({ 
                         x: konvaSolution.x() + Math.random() * konvaSolution.width(),
-                        y: konvaSolution.y() + Math.random() * konvaSolution.height() * 0.6, // Bắt đầu từ vị trí cao hơn
-                        radius: Math.random() * 3 + 1.5, // Kích thước lớn hơn
+                        y: konvaSolution.y() + Math.random() * konvaSolution.height() * 0.6, 
+                        radius: Math.random() * 3 + 1.5, 
                         fill: precipitateColorRGBA, 
-                        opacity: 0.9, // Rõ ràng hơn
+                        opacity: 0.9, 
                         name: 'precipitate'
                     });
                     konvaEffectsLayer.add(particle);
                     new Konva.Tween({
                         node: particle,
-                        duration: Math.random() * 2.5 + 1.5, // Thời gian lắng nhanh hơn
+                        duration: Math.random() * 2.5 + 1.5, 
                         y: konvaSolution.y() + konvaSolution.height() - particle.radius() - 3, 
                         easing: Konva.Easings.EaseIn 
                     }).play();
@@ -1442,12 +1508,12 @@ Output chỉ là JSON object.
             let duration = 0;
 
             if (effectType.includes("exothermic")) {
-                color = 'rgba(255, 69, 0, 0.6)'; // Orange-red, opacity cao hơn (từ 0.4)
-                opacity = 0.9; // Opacity cao hơn (từ 0.8)
+                color = 'rgba(255, 69, 0, 0.6)'; 
+                opacity = 0.9; 
                 duration = 2; 
             } else if (effectType.includes("endothermic")) {
-                color = 'rgba(0, 191, 255, 0.6)'; // Light blue, opacity cao hơn (từ 0.4)
-                opacity = 0.9; // Opacity cao hơn (từ 0.8)
+                color = 'rgba(0, 191, 255, 0.6)'; 
+                opacity = 0.9; 
                 duration = 2;
             } else {
                 return; 
@@ -1558,31 +1624,78 @@ Output chỉ là JSON object.
             konvaStage.width(containerWidth);
             konvaStage.height(KONVA_INITIAL_STAGE_HEIGHT * scale); 
             if (konvaBeaker) {
-                konvaBeaker.width(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).width);
-                konvaBeaker.height(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).height);
-                konvaBeaker.x(getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
-                konvaBeaker.y(getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height())); 
-                updateKonvaBeakerLabelPosition();
+                // Adjusting beaker points based on new scale
+                const responsiveBeakerTopWidth = getKonvaResponsiveValue(konvaBeaker.originalTopWidth, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()); 
+                const responsiveBeakerBottomWidth = getKonvaResponsiveSize(konvaBeaker.originalBottomWidth, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).width;
+                const responsiveBeakerBodyHeight = getKonvaResponsiveSize(konvaBeaker.originalBodyHeight, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()).height;
+                const responsiveBeakerBaseHeight = getKonvaResponsiveValue(konvaBeaker.originalBaseHeight, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()); 
+
+                const beakerX = getKonvaResponsiveValue(konvaBeaker.originalX, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
+                const beakerY = getKonvaResponsiveValue(konvaBeaker.originalY, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height());
+
+                const centerX = beakerX + responsiveBeakerBottomWidth / 2;
+                const topX1 = centerX - responsiveBeakerTopWidth / 2;
+                const topX2 = centerX + responsiveBeakerTopWidth / 2;
+                const bottomX1 = beakerX;
+                const bottomX2 = beakerX + responsiveBeakerBottomWidth;
+
+                konvaBeaker.sceneFunc(function (context, shape) {
+                    context.beginPath();
+                    context.moveTo(topX1, beakerY);
+                    context.lineTo(topX2, beakerY);
+                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight);
+                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight);
+                    context.closePath();
+                    context.moveTo(bottomX1, beakerY + responsiveBeakerBodyHeight);
+                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight);
+                    context.lineTo(bottomX2, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight);
+                    context.lineTo(bottomX1, beakerY + responsiveBeakerBodyHeight + responsiveBeakerBaseHeight);
+                    context.closePath();
+                    context.fillStrokeShape(shape);
+                });
+                konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())));
+                // konvaBeaker.cornerRadius is not a function - Removed this line as Konva.Shape does not have this method
+                konvaBeaker.shadowBlur(getKonvaResponsiveValue(8, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+                konvaBeaker.shadowOffset({ x: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()), y: getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()) });
+
             }
             if (konvaSolution) {
                 updateKonvaSolutionVisualState();
             }
+            // Update wave line stroke width
+            if (konvaWaveLine) {
+                konvaWaveLine.strokeWidth(getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
+            }
+
             // Add check for konvaLayer before using find()
             if (konvaLayer) {
                 konvaLayer.find('.dynamic-chemical').forEach(group => {
                     const chemicalSize = getKonvaResponsiveSize(60, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
+                    
                     // Update bottle body and neck sizes based on new scale
-                    const bottleBodyWidth = chemicalSize.width;
-                    const bottleBodyHeight = chemicalSize.height * 0.8;
-                    const bottleNeckHeight = chemicalSize.height * 0.4;
-                    const bottleNeckWidth = chemicalSize.width * 0.5;
+                    const bottleBodyWidth = chemicalSize.width * 0.7;
+                    const bottleBodyHeight = chemicalSize.height * 0.9;
+                    const bottleNeckWidth = bottleBodyWidth * 0.4;
+                    const bottleNeckHeight = chemicalSize.height * 0.3;
+                    const bottleCapHeight = chemicalSize.height * 0.15;
+                    const bottleCapWidth = bottleNeckWidth * 1.5;
 
-                    group.findOne('Rect.bottle-body').width(bottleBodyWidth).height(bottleBodyHeight);
-                    group.findOne('Rect.bottle-neck').x((bottleBodyWidth - bottleNeckWidth) / 2).y(-bottleNeckHeight).width(bottleNeckWidth).height(bottleNeckHeight);
-                    group.findOne('Text').fontSize(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())).width(bottleBodyWidth).height(bottleBodyHeight); // Text on body
-                    group.findOne('Rect.bottle-body').cornerRadius(getKonvaResponsiveValue(8, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())); // Update corner radius
-                    group.findOne('Rect.bottle-neck').cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())); // Update corner radius
-
+                    group.findOne('.bottle-body').width(bottleBodyWidth).height(bottleBodyHeight)
+                        .x((chemicalSize.width - bottleBodyWidth) / 2)
+                        .y(bottleCapHeight + bottleNeckHeight);
+                    group.findOne('.bottle-neck').width(bottleNeckWidth).height(bottleNeckHeight)
+                        .x((chemicalSize.width - bottleNeckWidth) / 2)
+                        .y(bottleCapHeight);
+                    group.findOne('.bottle-cap').width(bottleCapWidth).height(bottleCapHeight)
+                        .x((chemicalSize.width - bottleCapWidth) / 2)
+                        .y(0);
+                    
+                    const textNode = group.findOne('Text.bottle-text'); // Find by class name
+                    textNode.fontSize(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))
+                            .width(bottleBodyWidth)
+                            .height(bottleBodyHeight)
+                            .x(group.findOne('.bottle-body').x()) // Align with body x
+                            .y(group.findOne('.bottle-body').y() + (bottleBodyHeight - textNode.fontSize()) / 2); // Center text vertically
                 });
             }
             konvaStage.batchDraw();
