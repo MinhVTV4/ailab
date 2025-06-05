@@ -193,15 +193,15 @@
             <!-- Removed aiChemicalDefinitionArea, using toast for feedback -->
         </div>
         
-        <div class="mb-6 p-4 bg-white rounded shadow">
-            <h3 class="text-xl font-semibold text-gray-700 mb-3">Hóa Chất Của Bạn</h3>
-            <div id="userChemicalsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 min-h-[100px] bg-gray-50 p-2 rounded border">
-                <p class="text-gray-500 col-span-full text-center py-4">Chưa có hóa chất nào được lưu.</p>
-            </div>
+        <!-- NEW: Button to toggle Experiment Management Section -->
+        <div class="mb-6">
+            <button id="toggleExperimentManagementButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150">
+                <span id="toggleExperimentText">Mở Quản Lý Thí Nghiệm</span>
+            </button>
         </div>
 
-        <!-- NEW SECTION: Quản lý Thí Nghiệm -->
-        <div class="mb-6 p-4 bg-white rounded shadow">
+        <!-- NEW SECTION: Quản lý Thí Nghiệm (hidden by default) -->
+        <div id="experimentManagementSection" class="mb-6 p-4 bg-white rounded shadow hidden">
             <h3 class="text-xl font-semibold text-gray-700 mb-3">Quản Lý Thí Nghiệm</h3>
             <div class="flex gap-2 mb-4">
                 <input type="text" id="experimentNameInput" placeholder="Nhập tên thí nghiệm" class="flex-grow p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
@@ -214,6 +214,12 @@
         </div>
         <!-- END NEW SECTION -->
 
+        <div class="mb-6 p-4 bg-white rounded shadow">
+            <h3 class="text-xl font-semibold text-gray-700 mb-3">Hóa Chất Của Bạn</h3>
+            <div id="userChemicalsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 min-h-[100px] bg-gray-50 p-2 rounded border">
+                <p class="text-gray-500 col-span-full text-center py-4">Chưa có hóa chất nào được lưu.</p>
+            </div>
+        </div>
 
         <div id="lab-container" class="flex flex-col md:flex-row md:justify-around w-full max-w-6xl mx-auto gap-4">
             <div id="konva-outer-container" class="w-full md:w-2/3 bg-gray-200 border border-gray-300 rounded-lg shadow p-2 flex justify-center items-center touch-none"> 
@@ -365,9 +371,13 @@
         const infoPanelTitle = document.getElementById('info-panel-title');
         const infoPanelDescription = document.getElementById('info-panel-description');
         const infoPanelCloseButton = document.getElementById('info-panel-close-button');
-        const infoPanelCloseX = document.getElementById('info-panel-close-x');
+        const infoPanelCloseX = document.getElementById('info-panel-close-x'); // Corrected from `document = document.getElementById`
+        
 
         // NEW: Experiment DOM elements
+        const toggleExperimentManagementButton = document.getElementById('toggleExperimentManagementButton');
+        const experimentManagementSection = document.getElementById('experimentManagementSection');
+        const toggleExperimentText = document.getElementById('toggleExperimentText');
         const experimentNameInput = document.getElementById('experimentNameInput');
         const saveExperimentButton = document.getElementById('saveExperimentButton');
         const userExperimentsContainer = document.getElementById('userExperimentsContainer');
@@ -768,8 +778,6 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     chemicalElement.style.position = 'relative'; 
                     deleteButton.onclick = async (e) => {
                         e.stopPropagation(); 
-                        // Using custom modal instead of confirm()
-                        // This confirm() is fine for now as it's the only one left after custom modal logic was removed
                         const confirmation = confirm(`Bạn có chắc muốn xóa hóa chất "${chemicalData.name || 'này'}" không?`); 
                         if (confirmation) {
                             try {
@@ -1244,7 +1252,7 @@ Output chỉ là JSON object.
         function startKonvaBubblingEffect(intensity = "medium") {
             console.log("[KonvaEffect] Starting Bubbling with intensity:", intensity);
             if (konvaBubbleAnimation) konvaBubbleAnimation.stop();
-            if (konvaEffectsLayer) konvaEffectsLayer.find('.bubble').forEach(n => n.destroy()); // Added null check
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.bubble').forEach(n => n.destroy()); 
             let interval = 100; // ms
             let countPerInterval = 1;
 
@@ -1274,7 +1282,7 @@ Output chỉ là JSON object.
         function startKonvaSmokeEffect(intensity = "medium") {
             console.log("[KonvaEffect] Starting Smoke with intensity:", intensity);
             if (konvaSmokeAnimation) konvaSmokeAnimation.stop();
-            if (konvaEffectsLayer) konvaEffectsLayer.find('.smoke').forEach(n => n.destroy()); // Added null check
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.smoke').forEach(n => n.destroy()); 
             let interval = 150; // ms
             let countPerInterval = 1;
 
@@ -1302,7 +1310,7 @@ Output chỉ là JSON object.
         function startKonvaPrecipitateEffect(precipitateColorRGBA = "rgba(250, 250, 250, 0.9)") {
             console.log("[KonvaEffect] Starting Precipitate, color:", precipitateColorRGBA);
             if (konvaPrecipitateAnimation) konvaPrecipitateAnimation.stop();
-            if (konvaEffectsLayer) konvaEffectsLayer.find('.precipitate').forEach(n => n.destroy()); // Added null check
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.precipitate').forEach(n => n.destroy()); 
             
             konvaPrecipitateAnimation = new Konva.Animation(frame => {
                  if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
@@ -1321,7 +1329,7 @@ Output chỉ là JSON object.
 
         function visualizeTemperatureChange(effectType) {
             console.log("[KonvaEffect] Visualizing Temperature Change:", effectType);
-            if (konvaEffectsLayer) konvaEffectsLayer.find('.temp-indicator').forEach(n => n.destroy()); // Added null check
+            if (konvaEffectsLayer) konvaEffectsLayer.find('.temp-indicator').forEach(n => n.destroy()); 
 
             let color = 'transparent';
             let opacity = 0;
@@ -1367,7 +1375,7 @@ Output chỉ là JSON object.
                     }).play();
                 }
             }).play();
-            if (konvaEffectsLayer) konvaEffectsLayer.batchDraw(); // Added null check
+            if (konvaEffectsLayer) konvaEffectsLayer.batchDraw(); 
         }
 
 
@@ -1415,6 +1423,12 @@ Output chỉ là JSON object.
 
         // NEW: Event listener for saving experiment
         saveExperimentButton.addEventListener('click', saveExperiment);
+
+        // NEW: Event listener for toggling experiment management section
+        toggleExperimentManagementButton.addEventListener('click', () => {
+            const isHidden = experimentManagementSection.classList.toggle('hidden');
+            toggleExperimentText.textContent = isHidden ? 'Mở Quản Lý Thí Nghiệm' : 'Đóng Quản Lý Thí Nghiệm';
+        });
 
 
         function fitKonvaStageToParent() {
