@@ -80,39 +80,55 @@
             padding: 0.5rem; /* Reduced padding */
             font-size: 0.75rem; /* Smaller font size */
             position: relative; /* Needed for tooltip positioning */
+            display: flex; /* Use flexbox for layout */
+            flex-direction: column; /* Stack content vertically */
+            align-items: center; /* Center content horizontally */
+            text-align: center; /* Center text */
+            height: 120px; /* Fixed height for consistency */
+            justify-content: space-between; /* Distribute space */
         }
         #userChemicalsContainer .chemical-card h4 {
             font-size: 0.875rem; /* Slightly larger for name */
             margin-bottom: 0.25rem;
+            flex-shrink: 0; /* Prevent shrinking */
         }
         #userChemicalsContainer .chemical-card p {
             font-size: 0.625rem; /* Smaller for formula */
+            margin-bottom: auto; /* Push formula to top of remaining space */
+            flex-grow: 1; /* Allow to grow */
+            display: flex;
+            align-items: center; /* Center formula text vertically */
         }
         /* Responsive grid for chemical cards */
         #userChemicalsContainer {
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Min width 100px, responsive fill */
-            gap: 0.5rem; /* Reduced gap */
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); /* Even smaller min width */
+            gap: 0.4rem; /* Reduced gap */
         }
         @media (min-width: 640px) { /* sm */
             #userChemicalsContainer {
-                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
             }
         }
         @media (min-width: 768px) { /* md */
             #userChemicalsContainer {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             }
         }
         @media (min-width: 1024px) { /* lg */
             #userChemicalsContainer {
-                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            }
+        }
+        @media (min-width: 1280px) { /* xl */
+            #userChemicalsContainer {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             }
         }
 
         /* Tooltip styles */
         .chemical-tooltip {
             position: absolute;
-            top: 100%; /* Position below the chemical card */
+            top: calc(100% + 5px); /* Position slightly below the card */
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(0, 0, 0, 0.85);
@@ -120,8 +136,8 @@
             padding: 0.5rem 0.75rem;
             border-radius: 0.375rem;
             font-size: 0.75rem;
-            white-space: normal; /* Allow text to wrap */
-            max-width: 250px; /* Limit width */
+            white-space: normal;
+            max-width: 250px;
             z-index: 100;
             opacity: 0;
             visibility: hidden;
@@ -142,6 +158,45 @@
             border-width: 5px;
             border-style: solid;
             border-color: transparent transparent rgba(0, 0, 0, 0.85) transparent;
+        }
+
+        /* NEW: Type Indicator and Info Button Styles */
+        .type-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px; /* Thin strip at the top */
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+        }
+        .info-icon-btn {
+            position: absolute;
+            top: 0.25rem; /* Adjusted position */
+            left: 0.25rem; /* Adjusted position */
+            background-color: rgba(255, 255, 255, 0.7); /* Slightly transparent white */
+            color: #4B5563; /* Dark gray for icon */
+            border-radius: 9999px; /* Full rounded */
+            width: 1.25rem; /* Small size */
+            height: 1.25rem; /* Small size */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+            transition: opacity 0.15s ease-in-out;
+            z-index: 10; /* Ensure it's above other elements */
+            cursor: pointer;
+        }
+        .info-icon-btn:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 1);
+        }
+        .info-icon-btn svg {
+            width: 0.75rem; /* SVG size */
+            height: 0.75rem; /* SVG size */
+        }
+        .delete-btn {
+            z-index: 10; /* Ensure it's above other elements */
         }
     </style>
 </head>
@@ -746,12 +801,35 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     const chemicalId = docSnap.id;
                     console.log(`[onSnapshot] Processing chemical: ${chemicalData.name} (ID: ${chemicalId})`);
                     const chemicalElement = document.createElement('div');
-                    chemicalElement.className = 'chemical-card p-3 bg-white border rounded shadow-sm cursor-pointer hover:shadow-md transition-shadow'; // Added chemical-card class
+                    chemicalElement.className = 'chemical-card p-3 bg-white border rounded shadow-sm cursor-pointer hover:shadow-md transition-shadow relative'; // Added chemical-card class
                     chemicalElement.setAttribute('data-chemical-id', chemicalId);
-                    // Sử dụng màu dung dịch cho nền và màu viền (nhạt hơn một chút để dễ nhìn)
+
+                    // Map chemical type to a distinct color for the indicator
+                    let typeColor = 'rgba(100, 100, 100, 1)'; // Default gray for unknown/other
+                    switch (chemicalData.type) {
+                        case 'acid': typeColor = 'rgba(220, 38, 38, 1)'; break; // Red
+                        case 'base': typeColor = 'rgba(37, 99, 235, 1)'; break; // Blue
+                        case 'metal': typeColor = 'rgba(202, 138, 4, 1)'; break; // Yellow
+                        case 'salt': typeColor = 'rgba(22, 163, 74, 1)'; break; // Green
+                        case 'oxide': typeColor = 'rgba(124, 58, 237, 1)'; break; // Purple
+                        case 'organic': typeColor = 'rgba(234, 88, 12, 1)'; break; // Orange
+                        case 'gas': typeColor = 'rgba(96, 165, 250, 1)'; break; // Light Blue
+                        case 'nonmetal': typeColor = 'rgba(75, 85, 99, 1)'; break; // Dark Gray
+                    }
+
+                    // Type indicator strip
+                    const typeIndicator = document.createElement('div');
+                    typeIndicator.className = 'type-indicator';
+                    typeIndicator.style.backgroundColor = typeColor;
+                    chemicalElement.appendChild(typeIndicator);
+
+
+                    // Use solutionColor for background, but lighter
                     const bgColor = chemicalData.solutionColor || 'rgba(200,200,200,0.7)';
-                    chemicalElement.style.backgroundColor = bgColor.replace(/[\d\.]+\)$/g, '0.3)'); 
-                    chemicalElement.style.borderColor = bgColor.replace(/[\d\.]+\)$/g, '1)'); 
+                    chemicalElement.style.backgroundColor = bgColor.replace(/[\d\.]+\)$/g, '0.1)'); // Very light background tint
+                    chemicalElement.style.borderColor = typeColor; // Use type color for border
+
+
                     const nameEl = document.createElement('h4');
                     nameEl.className = 'font-semibold text-sm mb-1 truncate';
                     nameEl.textContent = chemicalData.name || "Chưa đặt tên";
@@ -761,7 +839,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     formulaEl.textContent = `(${chemicalData.formula || 'N/A'})`;
                     chemicalElement.appendChild(formulaEl);
 
-                    // Tooltip element
+                    // Tooltip element (kept)
                     const tooltip = document.createElement('div');
                     tooltip.className = 'chemical-tooltip';
                     tooltip.innerHTML = `
@@ -770,12 +848,22 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     `;
                     chemicalElement.appendChild(tooltip);
 
+                    // Info icon button
+                    const infoIcon = document.createElement('button');
+                    infoIcon.innerHTML = `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>`; // Basic info icon (Tailwind Heroicons equivalent)
+                    infoIcon.className = 'info-icon-btn';
+                    infoIcon.title = "Xem thông tin chi tiết";
+                    infoIcon.onclick = (e) => {
+                        e.stopPropagation(); // Prevent main card click/drag
+                        displayChemicalInfoInPanel(chemicalData);
+                    };
+                    chemicalElement.appendChild(infoIcon);
+
                     const deleteButton = document.createElement('button');
                     deleteButton.innerHTML = '&times;'; 
                     deleteButton.className = 'absolute top-1 right-1 text-xs bg-red-400 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center focus:outline-none';
                     deleteButton.title = "Xóa hóa chất này";
                     deleteButton.style.lineHeight = '1'; 
-                    chemicalElement.style.position = 'relative'; 
                     deleteButton.onclick = async (e) => {
                         e.stopPropagation(); 
                         const confirmation = confirm(`Bạn có chắc muốn xóa hóa chất "${chemicalData.name || 'này'}" không?`); 
@@ -790,8 +878,10 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                         }
                     };
                     chemicalElement.appendChild(deleteButton);
+
+                    // Attach click listener for dragging to beaker (main card area)
                     chemicalElement.addEventListener('click', () => {
-                        console.log("Clicked on saved chemical:", chemicalData);
+                        console.log("Clicked on saved chemical (main area):", chemicalData);
                         addKonvaChemicalFromData(chemicalData, chemicalId);
                     });
                     userChemicalsContainer.appendChild(chemicalElement);
@@ -1045,7 +1135,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             konvaEffectsLayer = new Konva.Layer();
             konvaStage.add(konvaEffectsLayer);
 
-            // Reverted to Konva.Rect for simpler beaker shape but with enhanced styling
+            // Using Konva.Rect for simpler beaker shape but with enhanced styling
             konvaBeaker = new Konva.Rect({
                 x: getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, currentW),
                 y: getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, currentH),
