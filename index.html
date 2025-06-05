@@ -878,11 +878,11 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 chemicalElement.style.borderColor = typeColor; 
 
                 const nameEl = document.createElement('h4');
-                nameEl.className = 'font-semibold truncate'; 
+                nameEl.className = 'font-semibold truncate'; // Removed mb-1
                 nameEl.textContent = chemicalData.name || "Chưa đặt tên";
                 chemicalElement.appendChild(nameEl);
                 const formulaEl = document.createElement('p');
-                formulaEl.className = 'text-gray-600 truncate'; 
+                formulaEl.className = 'text-gray-600 truncate'; // Removed mb-2, text-xs
                 formulaEl.textContent = `(${chemicalData.formula || 'N/A'})`;
                 chemicalElement.appendChild(formulaEl);
 
@@ -1142,21 +1142,13 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 console.log("[clearLabOnLogout] Unsubscribed from experiment listener.");
             }
 
-            // Check if userChemicalsContainer exists before manipulating
-            if (userChemicalsContainer) {
-                userChemicalsContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center py-4">Vui lòng đăng nhập để xem hóa chất.</p>';
-            }
-            // Check if userExperimentsContainer exists before manipulating
-            if (userExperimentsContainer) {
-                userExperimentsContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center py-4">Bạn chưa lưu thí nghiệm nào.</p>'; // NEW: Clear experiments display
-            }
-            
+            userChemicalsContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center py-4">Vui lòng đăng nhập để xem hóa chất.</p>';
+            userExperimentsContainer.innerHTML = '<p class="text-gray-500 col-span-full text-center py-4">Bạn chưa lưu thí nghiệm nào.</p>'; // NEW: Clear experiments display
+
             resetBeaker(); // Re-use resetBeaker function to clear Konva state
             currentSelectedAiChemical = null;
             // Removed aiChemicalDefinitionArea.textContent update here
-            if (geminiApiErrorNotice) { // Add null check for geminiApiErrorNotice
-                geminiApiErrorNotice.classList.add('hidden');
-            }
+            geminiApiErrorNotice.classList.add('hidden');
             
             // NEW: Clear current experiment state
             currentExperimentId = null;
@@ -1295,8 +1287,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
 
             // Add drag events for beaker highlighting
             konvaBeaker.on('dragenter', function(e) {
-                // Ensure it's a dynamic-chemical group being dragged, not the beaker itself
-                if (e.target.name() === 'dynamic-chemical') { 
+                if (e.target.name() === 'dynamic-chemical') { // Only highlight if a chemical is dragging over
                     konvaBeaker.stroke('green');
                     konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(4, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()))); // Thicker green border
                     konvaBeaker.shadowColor('green');
@@ -1306,7 +1297,6 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             });
 
             konvaBeaker.on('dragleave', function(e) {
-                // Ensure it's a dynamic-chemical group leaving, not the beaker itself
                 if (e.target.name() === 'dynamic-chemical') {
                     // Revert to original styling
                     konvaBeaker.stroke('black');
@@ -1464,79 +1454,35 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             });
 
             group.on('dragend', function() {
-                this.scale({x: 1, y: 1}); // Reset scale after drag
+                this.scale({x: 1, y: 1});
                 const droppedChemicalData = this.attrs.chemicalData; 
                 const beakerRect = konvaBeaker.getClientRect();
                 const chemicalRect = this.getClientRect();
-
                 if (Konva.Util.haveIntersection(beakerRect, chemicalRect)) {
                     showToast(`Đã thêm ${droppedChemicalData.name} vào cốc.`);
+                    konvaChemicalsInBeaker.push(droppedChemicalData); 
+                    console.log("[Konva DragEnd] Chemicals in beaker:", JSON.stringify(konvaChemicalsInBeaker.map(c => c.name)));
                     
-                    // Calculate drop start position (from the bottle's neck)
-                    const bottleNeck = this.findOne('.bottle-neck'); // find bottleNeck element
-                    const dropStartX = this.x() + bottleNeck.x() + bottleNeck.width() / 2;
-                    const dropStartY = this.y() + bottleNeck.y() + bottleNeck.height(); // From bottom of the neck
-
-                    // Create the liquid drop (Konva.Circle)
-                    const dropRadius = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
-                    const liquidDrop = new Konva.Circle({
-                        x: dropStartX,
-                        y: dropStartY,
-                        radius: dropRadius,
-                        fill: chemicalData.solutionColor.replace(/[\d\.]+\)$/, '1)'), // Make drop opaque
-                        opacity: 1,
-                        name: 'liquid-drop',
-                    });
-                    konvaEffectsLayer.add(liquidDrop);
-
-                    // Animate the drop falling into the beaker
-                    new Konva.Tween({
-                        node: liquidDrop,
-                        duration: 0.5, // Faster drop
-                        y: konvaSolution.y() + konvaSolution.height() - dropRadius, // Target Y at liquid surface
-                        easing: Konva.Easings.EaseIn,
-                        onFinish: () => {
-                            liquidDrop.destroy(); // Destroy drop after it hits
-                            konvaEffectsLayer.batchDraw(); // Redraw effects layer
-
-                            // NOW update chemical state and trigger AI
-                            konvaChemicalsInBeaker.push(droppedChemicalData);
-                            console.log("[Konva Drop Animation Finished] Chemicals in beaker:", JSON.stringify(konvaChemicalsInBeaker.map(c => c.name)));
-                            updateKonvaSolutionVisualState();
-                            triggerKonvaReactionAI();
-                            isExperimentModified = true;
-                            updateExperimentNameDisplay();
-                        }
-                    }).play();
-
-                    // Return the chemical bottle to its initial position
+                    // NEW: Soft "drop" animation
                     new Konva.Tween({
                         node: this, // The chemical group
-                        duration: 0.5,
-                        x: this.getAttr('initialX'),
-                        y: this.getAttr('initialY'),
-                        easing: Konva.Easings.EaseOut,
+                        duration: 0.3,
+                        scaleX: 0.5,
+                        scaleY: 0.5,
+                        opacity: 0,
+                        y: this.y() + getKonvaResponsiveValue(50, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height()), // Move slightly down
                         onFinish: () => {
-                            this.opacity(1); // Ensure full opacity if it was changed on dragstart
-                            konvaLayer.batchDraw();
+                            this.destroy(); // Destroy after animation
+                            konvaLayer.batchDraw(); // Redraw layer to remove it visually
                         }
                     }).play();
 
-                } else {
-                    // If not dropped in beaker, just return to initial position
-                    new Konva.Tween({
-                        node: this,
-                        duration: 0.3,
-                        x: this.getAttr('initialX'),
-                        y: this.getAttr('initialY'),
-                        easing: Konva.Easings.EaseOut,
-                        onFinish: () => {
-                            this.opacity(1);
-                            konvaLayer.batchDraw();
-                        }
-                    }).play();
-                    showToast("Hóa chất không được thả vào cốc.");
-                }
+                    updateKonvaSolutionVisualState(); 
+                    triggerKonvaReactionAI(); 
+                    isExperimentModified = true; // Mark as modified
+                    updateExperimentNameDisplay(); // Update display with asterisk
+
+                } 
                 // Always revert beaker highlight when drag ends
                 konvaBeaker.stroke('black');
                 konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width())));
