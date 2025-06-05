@@ -11,14 +11,16 @@
     <script type="module" src="https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js"></script>
     <!-- Firebase Firestore -->
     <script type="module" src="https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js"></script>
-    <!-- Konva.js (tạm thời chưa dùng nhiều ở bước này) -->
+    <!-- Firebase AI Logic SDK -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/11.8.1/firebase-ai.js"></script>
+    <!-- Konva.js -->
     <script src="https://unpkg.com/konva@9.3.6/konva.min.js"></script>
     <style>
         body { font-family: sans-serif; overscroll-behavior: none; }
         #konva-stage-container canvas { max-width: 100%; height: auto !important; }
         .custom-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: #333; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
         .custom-toast.show { opacity: 1; }
-        /* Thêm style cho modal (nếu dùng) hoặc form */
+        /* Style cho form xác thực */
         .auth-form-container { max-width: 400px; margin: 2rem auto; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .lab-hidden { display: none !important; } /* Ẩn phòng thí nghiệm khi chưa đăng nhập */
         .api-error-notice { background-color: #fff3cd; border-color: #ffeeba; color: #856404; padding: .75rem 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: .25rem; }
@@ -65,7 +67,7 @@
         <div class="w-full max-w-md mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700">
             <p class="font-bold">Lưu ý quan trọng:</p>
             <p>1. Để sử dụng chức năng đăng nhập/đăng ký bằng Email, bạn cần kích hoạt phương thức "Email/Password" trong Firebase Console -> Authentication -> Sign-in method.</p>
-            <p class="mt-2">2. Để chức năng "Tạo Hóa Chất" hoạt động, hãy đảm bảo API Key của Google Cloud (dùng cho Gemini API) đã được cấu hình đúng và dịch vụ "Generative Language API" (hoặc Vertex AI) đã được bật cho dự án của bạn.</p>
+            <p class="mt-2">2. Để chức năng "Tạo Hóa Chất" hoạt động, hãy đảm bảo dịch vụ "Generative Language API" (hoặc Vertex AI) đã được bật cho dự án của bạn trong Google Cloud Console.</p>
         </div>
         <div id="user-status" class="w-full max-w-md mb-4 p-3 bg-white rounded shadow text-center">
             <p id="user-email-display">Chưa đăng nhập</p>
@@ -97,7 +99,7 @@
             <h3 class="text-xl font-semibold text-gray-700 mb-3">Tạo Hóa Chất Mới (AI Hỗ Trợ)</h3>
             <div id="gemini-api-error-notice" class="api-error-notice hidden">
                 <p class="font-bold">Lỗi kết nối Gemini API!</p>
-                <p>Không thể tạo hóa chất. Vui lòng kiểm tra cấu hình API Key và đảm bảo dịch vụ Generative Language API đã được bật cho dự án của bạn.</p>
+                <p>Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật trên Google Cloud Console.</p>
             </div>
             <div class="flex gap-2">
                 <input type="text" id="chemicalNameInput" placeholder="Nhập tên hóa chất (ví dụ: Axit Sunfuric)" class="flex-grow p-2 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500">
@@ -188,9 +190,11 @@
             serverTimestamp,
             deleteDoc
         } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
+        import { getAI, getGenerativeModel, GoogleAIBackend } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-ai.js";
+
 
         const firebaseConfig = {
-            apiKey: "AIzaSyAnWoc5pBabK2OfFeCau61X1PioBR5gBD8", // <-- Thay bằng API key của bạn
+            apiKey: "AIzaSyAnWoc5pBabK2OfFeCau61X1PioBR5gBD8", // <-- Thay bằng API key của bạn từ Firebase Console
             authDomain: "ailab-9ef87.firebaseapp.com",
             projectId: "ailab-9ef87",
             storageBucket: "ailab-9ef87.firebasestorage.app", 
@@ -203,10 +207,17 @@
         const db = getFirestore(app);
         console.log("Firebase App, Auth, and Firestore initialized with new config!");
 
-        // IMPORTANT: Ensure this GEMINI_API_KEY is empty string in production
-        // It will be provided by the Canvas environment at runtime.
-        const GEMINI_API_KEY = ""; 
-        const GEMINI_API_URL_FLASH = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+        let geminiModel;
+        try {
+            const ai = getAI(app, { backend: new GoogleAIBackend() });
+            geminiModel = getGenerativeModel(ai, { model: "gemini-2.0-flash" }); // Using gemini-2.0-flash as specified in previous instructions
+            console.log("Generative Model instance created with model 'gemini-2.0-flash'!");
+        } catch (e) {
+            console.error("Lỗi khi khởi tạo AI Model:", e);
+            document.getElementById("gemini-api-error-notice").classList.remove('hidden');
+            document.getElementById("gemini-api-error-notice").innerHTML = `<p class="font-bold">Lỗi khởi tạo AI Model!</p><p>${e.message}. Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật.</p>`;
+        }
+
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-ai-lab-app';
         let currentUserId = null; 
@@ -254,19 +265,23 @@
                 }, 3000); 
             } else {
                 console.warn("Custom toast element not found. Message:", message);
-                // Fallback to alert if toast not found (though it should be)
-                // alert(message); // Removed due to instructions
             }
         }
 
         async function callGeminiAPI(promptText) {
             const responseContainer = document.getElementById("responseContainer"); 
             
+            if (!geminiModel) {
+                const errorMessage = "Mô hình AI chưa được khởi tạo. Vui lòng kiểm tra console để biết lỗi.";
+                if (responseContainer) {
+                    responseContainer.innerText = errorMessage;
+                }
+                console.error(errorMessage);
+                return;
+            }
             if (!promptText || !promptText.trim()) {
                 if (typeof showToast === 'function') {
                     showToast("Vui lòng nhập lời nhắc cho Gemini.");
-                } else {
-                    // alert("Vui lòng nhập lời nhắc cho Gemini."); // Removed due to instructions
                 }
                 return;
             }
@@ -277,33 +292,22 @@
             console.log("Calling generic Gemini API with prompt:", promptText);
 
             try {
-                const payload = { contents: [{ role: "user", parts: [{ text: promptText }] }] };
-                const response = await fetch(GEMINI_API_URL_FLASH, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) { // Kiểm tra nếu response không thành công (ví dụ: 403, 400)
-                    const errorData = await response.json().catch(() => ({ message: response.statusText }));
-                    console.error("Gemini API request failed with status:", response.status, errorData);
-                    throw new Error(`Lỗi API Gemini: ${response.status} ${errorData.error ? errorData.error.message : errorData.message}`);
+                // Using the Firebase AI Logic SDK to generate content
+                const result = await geminiModel.generateContent(promptText);
+                const response = result.response;
+                const text = response.text();
+                if(responseContainer) {
+                    responseContainer.innerHTML = `<strong>Phản hồi từ AI:</strong><br>${text}`;
                 }
-                const result = await response.json();
-
-                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0].text) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    if (responseContainer) {
-                        responseContainer.innerHTML = `<strong>Phản hồi từ AI:</strong><br>${text}`;
-                    }
-                    console.log("Response text from generic Gemini API:", text);
-                } else {
-                    throw new Error("AI không trả về phản hồi hợp lệ cho prompt.");
-                }
+                console.log("Response text from generic Gemini API:", text);
             } catch (error) {
                 console.error("Lỗi khi gọi Gemini API (chung):", error);
                 if (responseContainer) {
                     responseContainer.innerHTML = `<span class="text-red-600 font-bold">Lỗi Gemini: ${error.message}.</span>`;
                 }
+                 // Show API error notice only if it's an actual API error, not a prompt issue.
+                geminiApiErrorNotice.classList.remove('hidden'); 
+                geminiApiErrorNotice.innerHTML = `<p class="font-bold">Lỗi kết nối Gemini API!</p><p>${error.message}. Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật trên Google Cloud Console.</p>`;
             }
         }
 
@@ -420,7 +424,6 @@
                     showToast(`Lỗi đăng nhập: ${error.message}`);
                 } else {
                     console.error("showToast is not defined in loginButton catch. Error:", `Lỗi đăng nhập: ${error.message}`);
-                    // alert(`Lỗi đăng nhập: ${error.message}`); // Removed due to instructions
                 }
             }
         });
@@ -448,7 +451,6 @@
                     showToast(`Lỗi đăng ký: ${error.message}. Hãy đảm bảo phương thức Email/Password đã được bật trong Firebase Console.`);
                 } else {
                     console.error("showToast is not defined in registerButton catch. Error:", `Lỗi đăng ký: ${error.message}`);
-                    // alert(`Lỗi đăng ký: ${error.message}. Hãy đảm bảo phương thức Email/Password đã được bật trong Firebase Console.`); // Removed due to instructions
                 }
             }
         });
@@ -461,8 +463,6 @@
                 console.error("Lỗi đăng xuất:", error);
                 if (typeof showToast === 'function') {
                     showToast(`Lỗi đăng xuất: ${error.message}`);
-                } else {
-                    // alert(`Lỗi đăng xuất: ${error.message}`); // Removed due to instructions
                 }
             }
         });
@@ -472,6 +472,12 @@
                 showToast("Vui lòng đăng nhập để tạo hóa chất.");
                 return;
             }
+            if (!geminiModel) {
+                 showToast("Mô hình AI chưa sẵn sàng để tạo hóa chất.");
+                 document.getElementById("gemini-api-error-notice").classList.remove('hidden'); // Ensure error notice is visible
+                 return;
+            }
+
             const chemicalName = chemicalNameInput.value.trim();
             if (!chemicalName) {
                 showToast("Vui lòng nhập tên hóa chất.");
@@ -480,7 +486,7 @@
             aiChemicalDefinitionArea.textContent = "Đang liên hệ với AI để định nghĩa hóa chất...";
             geminiApiErrorNotice.classList.add('hidden'); // Ẩn thông báo lỗi cũ (nếu có)
             currentSelectedAiChemical = null;
-            // UPDATED PROMPT: Requesting more detailed chemical properties from Gemini
+            
             const prompt = `Cung cấp thông tin chi tiết về hóa chất "${chemicalName}" dưới dạng một đối tượng JSON. JSON object phải bao gồm các trường sau:
 - "name": (string) Tên đầy đủ và phổ biến của hóa chất.
 - "formula": (string) Công thức hóa học.
@@ -523,38 +529,23 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
 }
 `;
             try {
-                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-                const response = await fetch(GEMINI_API_URL_FLASH, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) { // Kiểm tra response status
-                    const errorData = await response.json().catch(() => ({ message: `Lỗi HTTP: ${response.status} ${response.statusText}` }));
-                    console.error("Gemini API request failed with status:", response.status, errorData);
-                    const detailedErrorMsg = errorData.error ? errorData.error.message : errorData.message;
-                    throw new Error(`Lỗi gọi API Gemini: ${response.status}. ${detailedErrorMsg}. Vui lòng kiểm tra API Key và cấu hình dịch vụ.`);
-                }
-
-                const result = await response.json();
-                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0].text) {
-                    let rawJsonText = result.candidates[0].content.parts[0].text;
-                    // Clean up markdown code block if present
-                    rawJsonText = rawJsonText.replace(/^```json\s*([\s\S]*?)\s*```$/, '$1').trim();
-                    console.log("Raw JSON text from AI:", rawJsonText);
-                    currentSelectedAiChemical = JSON.parse(rawJsonText); 
-                    confirmChemicalDetails.innerHTML = `<pre class="bg-gray-100 p-2 rounded text-xs">${JSON.stringify(currentSelectedAiChemical, null, 2)}</pre>`;
-                    confirmSaveModal.classList.remove('hidden');
-                    aiChemicalDefinitionArea.textContent = `AI đã định nghĩa hóa chất: ${currentSelectedAiChemical.name || chemicalName}. Kiểm tra và xác nhận lưu.`;
-                } else {
-                    console.warn("Gemini API response structure unexpected:", result);
-                    throw new Error("AI không trả về định nghĩa hóa chất hợp lệ (cấu trúc phản hồi không đúng).");
-                }
+                // Using Firebase AI Logic SDK
+                const result = await geminiModel.generateContent(prompt);
+                const response = result.response;
+                let rawJsonText = response.text();
+                
+                // Clean up markdown code block if present
+                rawJsonText = rawJsonText.replace(/^```json\s*([\s\S]*?)\s*```$/, '$1').trim();
+                console.log("Raw JSON text from AI:", rawJsonText);
+                currentSelectedAiChemical = JSON.parse(rawJsonText); 
+                confirmChemicalDetails.innerHTML = `<pre class="bg-gray-100 p-2 rounded text-xs">${JSON.stringify(currentSelectedAiChemical, null, 2)}</pre>`;
+                confirmSaveModal.classList.remove('hidden');
+                aiChemicalDefinitionArea.textContent = `AI đã định nghĩa hóa chất: ${currentSelectedAiChemical.name || chemicalName}. Kiểm tra và xác nhận lưu.`;
             } catch (error) {
                 console.error("Lỗi khi gọi Gemini API hoặc parse JSON:", error);
                 aiChemicalDefinitionArea.textContent = `Lỗi: ${error.message}`;
                 geminiApiErrorNotice.classList.remove('hidden'); // Hiển thị thông báo lỗi API
+                geminiApiErrorNotice.innerHTML = `<p class="font-bold">Lỗi kết nối Gemini API!</p><p>${error.message}. Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật trên Google Cloud Console.</p>`;
                 currentSelectedAiChemical = null;
             }
         });
@@ -787,10 +778,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 konvaSolution.visible(false);
             } else {
                 const maxRise = getKonvaResponsiveValue(KONVA_MAX_LIQUID_RISE, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height());
-                // The number of chemical drops can be conceptual. Let's make it more realistic
-                // based on the number of unique chemical types, or a fixed max level.
-                // For now, let's assume each addition increases the level a bit.
-                const risePerChemicalDrop = maxRise / (konvaChemicalsInBeaker.length + 5); // Example: divide max rise over initial empty space + 5 drops
+                const risePerChemicalDrop = maxRise / (konvaChemicalsInBeaker.length + 5); 
                 let targetHeight = Math.min(konvaChemicalsInBeaker.length * risePerChemicalDrop, maxRise);
                 targetHeight = Math.min(targetHeight, konvaBeaker.height() - 2 * padding);
                 konvaSolution.height(targetHeight);
@@ -867,6 +855,11 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                 document.getElementById('responseContainer').textContent = "Cốc thí nghiệm trống hoặc chỉ có một hóa chất (chưa đủ để phản ứng).";
                 return;
             }
+            if (!geminiModel) {
+                 showToast("Mô hình AI chưa sẵn sàng để phân tích phản ứng.");
+                 document.getElementById("gemini-api-error-notice").classList.remove('hidden'); // Ensure error notice is visible
+                 return;
+            }
             stopAllKonvaEffects(); 
             const chemicalNamesInBeaker = konvaChemicalsInBeaker.map(c => c.name).join(', ');
             document.getElementById('responseContainer').textContent = `Đang phân tích phản ứng giữa: ${chemicalNamesInBeaker}...`;
@@ -874,12 +867,12 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             const detailedChemicalsForAI = konvaChemicalsInBeaker.map(chem => ({
                 name: chem.name, 
                 formula: chem.formula, 
-                type: chem.type, // Added for AI
-                strength: chem.strength, // Added for AI
-                stateAtSTP: chem.stateAtSTP, // Added for AI
-                isSoluble: chem.isSoluble, // Added for AI
-                ionFormation: chem.ionFormation, // Added for AI
-                solutionColor: chem.solutionColor, // Added for AI
+                type: chem.type, 
+                strength: chem.strength, 
+                stateAtSTP: chem.stateAtSTP, 
+                isSoluble: chem.isSoluble, 
+                ionFormation: chem.ionFormation, 
+                solutionColor: chem.solutionColor, 
                 specificReactions: chem.specificReactions 
             }));
             const prompt = `Phân tích phản ứng hóa học có thể xảy ra khi trộn các hóa chất sau trong một cốc thí nghiệm: ${JSON.stringify(detailedChemicalsForAI, null, 2)}. 
@@ -901,40 +894,28 @@ Hãy cung cấp kết quả dưới dạng một đối tượng JSON duy nhất
 Output chỉ là JSON object.
 `;
             try {
-                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-                const response = await fetch(GEMINI_API_URL_FLASH, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ message: `Lỗi HTTP: ${response.status}` }));
-                    console.error("Gemini API request failed (Reaction):", response.status, errorData);
-                    throw new Error(`Lỗi API Gemini (Phản ứng): ${response.status} ${errorData.error ? errorData.error.message : errorData.message}`);
-                }
-                const result = await response.json();
-                console.log("AI Reaction Analysis Raw:", result);
-                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts[0].text) {
-                    let rawJsonText = result.candidates[0].content.parts[0].text;
-                    rawJsonText = rawJsonText.replace(/^```json\s*([\s\S]*?)\s*```$/, '$1').trim();
-                    console.log("AI Reaction Analysis Parsed JSON Text:", rawJsonText);
-                    const reactionData = JSON.parse(rawJsonText);
-                    document.getElementById('responseContainer').innerHTML = `<strong>Giải thích từ AI:</strong><br>${reactionData.explanation || "Không có giải thích."}<br><strong>Phương trình (nếu có):</strong> ${reactionData.mainReactionEquation || "N/A"}<br><strong>Sản phẩm:</strong> ${reactionData.products ? reactionData.products.join(', ') : "N/A"}`;
-                    if (reactionData.reactionOccurred && reactionData.visualPhenomena) {
-                        const phenomena = reactionData.visualPhenomena;
-                        if (phenomena.colorChangeTo) konvaSolution.fill(phenomena.colorChangeTo);
-                        
-                        if (phenomena.gasEvolution) startKonvaBubblingEffect(phenomena.gasEvolutionIntensity);
-                        if (phenomena.precipitateFormation) startKonvaPrecipitateEffect(phenomena.precipitateColorRGBA); 
-                        if (phenomena.smokeOrVapor) startKonvaSmokeEffect(phenomena.smokeIntensity);
-                        if (phenomena.temperatureEffect) visualizeTemperatureChange(phenomena.temperatureEffect);
-                    }
-                } else {
-                     throw new Error("AI không trả về phân tích phản ứng hợp lệ.");
+                // Using Firebase AI Logic SDK
+                const result = await geminiModel.generateContent(prompt);
+                const response = result.response;
+                let rawJsonText = response.text();
+                rawJsonText = rawJsonText.replace(/^```json\s*([\s\S]*?)\s*```$/, '$1').trim();
+                console.log("AI Reaction Analysis Parsed JSON Text:", rawJsonText);
+                const reactionData = JSON.parse(rawJsonText);
+                document.getElementById('responseContainer').innerHTML = `<strong>Giải thích từ AI:</strong><br>${reactionData.explanation || "Không có giải thích."}<br><strong>Phương trình (nếu có):</strong> ${reactionData.mainReactionEquation || "N/A"}<br><strong>Sản phẩm:</strong> ${reactionData.products ? reactionData.products.join(', ') : "N/A"}`;
+                if (reactionData.reactionOccurred && reactionData.visualPhenomena) {
+                    const phenomena = reactionData.visualPhenomena;
+                    if (phenomena.colorChangeTo) konvaSolution.fill(phenomena.colorChangeTo);
+                    
+                    if (phenomena.gasEvolution) startKonvaBubblingEffect(phenomena.gasEvolutionIntensity);
+                    if (phenomena.precipitateFormation) startKonvaPrecipitateEffect(phenomena.precipitateColorRGBA); 
+                    if (phenomena.smokeOrVapor) startKonvaSmokeEffect(phenomena.smokeIntensity);
+                    if (phenomena.temperatureEffect) visualizeTemperatureChange(phenomena.temperatureEffect);
                 }
             } catch (error) {
                 console.error("Lỗi khi gọi AI phân tích phản ứng:", error);
                 document.getElementById('responseContainer').textContent = `Lỗi AI: ${error.message}`;
+                geminiApiErrorNotice.classList.remove('hidden'); 
+                geminiApiErrorNotice.innerHTML = `<p class="font-bold">Lỗi kết nối Gemini API!</p><p>${error.message}. Vui lòng kiểm tra cấu hình dự án Firebase của bạn và đảm bảo dịch vụ Generative Language API đã được bật trên Google Cloud Console.</p>`;
             }
             konvaLayer.batchDraw();
             konvaEffectsLayer.batchDraw();
