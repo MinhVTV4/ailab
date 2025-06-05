@@ -76,7 +76,7 @@
             max-width: 400px;
         }
         /* NEW: Styles for smaller chemical cards */
-        #userChemicalsContainer .chemical-card, #availableChemicalsContainer .chemical-card {
+        #userChemicalsContainer .chemical-card {
             padding: 0.4rem; /* Reduced padding */
             font-size: 0.75rem; /* Base font size */
             position: relative;
@@ -87,7 +87,7 @@
             height: 90px; /* Reduced fixed height */
             justify-content: space-between;
         }
-        #userChemicalsContainer .chemical-card h4, #availableChemicalsContainer .chemical-card h4 {
+        #userChemicalsContainer .chemical-card h4 {
             font-size: 0.75rem; /* Smaller font size for name */
             margin-bottom: 0.25rem;
             flex-shrink: 0;
@@ -97,7 +97,7 @@
             overflow: hidden; /* Hide overflow */
             text-overflow: ellipsis; /* Add ellipsis if overflow */
         }
-        #userChemicalsContainer .chemical-card p, #availableChemicalsContainer .chemical-card p {
+        #userChemicalsContainer .chemical-card p {
             font-size: 1.125rem; /* Larger font size for formula */
             font-weight: bold; /* Make formula bold */
             margin-bottom: auto;
@@ -107,27 +107,27 @@
             justify-content: center; /* Center formula horizontally */
         }
         /* Responsive grid for chemical cards */
-        #userChemicalsContainer, #availableChemicalsContainer {
+        #userChemicalsContainer {
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); 
             gap: 0.4rem; 
         }
         @media (min-width: 640px) { /* sm */
-            #userChemicalsContainer, #availableChemicalsContainer {
+            #userChemicalsContainer {
                 grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
             }
         }
         @media (min-width: 768px) { /* md */
-            #userChemicalsContainer, #availableChemicalsContainer {
+            #userChemicalsContainer {
                 grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
             }
         }
         @media (min-width: 1024px) { /* lg */
-            #userChemicalsContainer, #availableChemicalsContainer {
+            #userChemicalsContainer {
                 grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
             }
         }
         @media (min-width: 1280px) { /* xl */
-            #userChemicalsContainer, #availableChemicalsContainer {
+            #userChemicalsContainer {
                 grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             }
         }
@@ -202,37 +202,11 @@
             width: 0.75rem; 
             height: 0.75rem; 
         }
-        .delete-btn, .copy-chemical-btn { /* Apply to copy button too */
+        .delete-btn {
             z-index: 10; 
             top: 0.25rem; 
             right: 0.25rem; 
         }
-        .copy-chemical-btn {
-            background-color: rgba(0, 128, 0, 0.7); /* Green color */
-            color: white;
-            border-radius: 9999px; 
-            width: 1.25rem; 
-            height: 1.25rem; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.9;
-            transition: opacity 0.15s ease-in-out;
-            z-index: 10;
-            cursor: pointer;
-            position: absolute; /* Needed for positioning */
-            right: 0.25rem; /* Same as delete button */
-            bottom: 0.25rem; /* Position at bottom right */
-        }
-        .copy-chemical-btn:hover {
-            opacity: 1;
-            background-color: rgba(0, 128, 0, 1);
-        }
-        .copy-chemical-btn svg {
-            width: 0.75rem; 
-            height: 0.75rem; 
-        }
-
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -283,13 +257,6 @@
             <!-- Removed aiChemicalDefinitionArea, using toast for feedback -->
         </div>
         
-        <!-- NEW: Button for Available Chemicals -->
-        <div class="mb-6">
-            <button id="showAvailableChemicalsButton" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150">
-                Hóa chất có sẵn
-            </button>
-        </div>
-
         <!-- NEW: Button to toggle Experiment Management Section -->
         <div class="mb-6">
             <button id="toggleExperimentManagementButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150">
@@ -379,19 +346,6 @@
         </div>
     </div>
 
-    <!-- NEW: Modal Hóa chất có sẵn -->
-    <div id="availableChemicalsModalOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center hidden"></div>
-    <div id="availableChemicalsModal" class="info-panel hidden">
-        <button id="availableChemicalsCloseX" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-xl font-bold">&times;</button>
-        <h3 class="text-2xl font-bold mb-3 text-blue-700">Hóa chất có sẵn</h3>
-        <div id="availableChemicalsLoading" class="text-center text-gray-500 py-4">Đang tải hóa chất...</div>
-        <div id="availableChemicalsContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 max-h-[70vh] overflow-y-auto p-2 border rounded bg-gray-50">
-            <!-- Chemicals will be loaded here dynamically -->
-            <p class="text-gray-500 col-span-full text-center py-4">Chưa có hóa chất nào được tải.</p>
-        </div>
-        <button id="availableChemicalsCloseButton" class="mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md w-full">Đóng</button>
-    </div>
-
 
     <script type="module">
         // Import các hàm từ Firebase SDK
@@ -479,7 +433,7 @@
         const confirmChemicalDetails = document.getElementById('confirmChemicalDetails');
         const cancelSaveChemical = document.getElementById('cancelSaveChemical');
         const confirmSaveChemicalButtonAction = document.getElementById('confirmSaveChemicalButtonAction');
-        const geminiApiErrorNotice = document.getElementById('gemini-api-notice');
+        const geminiApiErrorNotice = document.getElementById('gemini-api-error-notice');
 
         const infoPanel = document.getElementById('info-panel');
         const infoPanelOverlay = document.getElementById('info-panel-overlay');
@@ -504,24 +458,162 @@
         const cancelDeleteExperiment = document.getElementById('cancelDeleteExperiment');
         const confirmDeleteExperiment = document.getElementById('confirmDeleteExperiment');
 
-        // NEW: Available Chemicals Modal elements
-        const showAvailableChemicalsButton = document.getElementById('showAvailableChemicalsButton');
-        const availableChemicalsModal = document.getElementById('availableChemicalsModal');
-        const availableChemicalsModalOverlay = document.getElementById('availableChemicalsModalOverlay');
-        const availableChemicalsCloseX = document.getElementById('availableChemicalsCloseX');
-        const availableChemicalsCloseButton = document.getElementById('availableChemicalsCloseButton');
-        const availableChemicalsLoading = document.getElementById('availableChemicalsLoading');
-        const availableChemicalsContainer = document.getElementById('availableChemicalsContainer');
-
-
         let experimentIdToDelete = null; // To store ID of experiment to delete
 
         // Stored chemicals for filtering
         let allUserChemicals = [];
 
-        // Store fetched default chemicals globally once
-        let fetchedDefaultChemicals = [];
-
+        // NEW: Default chemicals data
+        const DEFAULT_CHEMICALS_DATA = [
+            {
+                name: "Nước",
+                formula: "H2O",
+                appearance: "Chất lỏng trong suốt, không màu.",
+                solutionColor: "rgba(173, 216, 230, 0.5)",
+                description: "Dung môi phổ biến nhất, cần thiết cho sự sống. Là một oxide lưỡng tính yếu.",
+                type: "oxide",
+                strength: "neutral",
+                stateAtSTP: "liquid",
+                isSoluble: true,
+                ionFormation: {"cation": "H+", "anion": "OH-"},
+                colorWhenDry: "Không màu",
+                density_g_cm3: 1,
+                boiling_point_C: 100,
+                melting_point_C: 0,
+                isFlammable: false,
+                isReactive: false,
+                specificReactions: []
+            },
+            {
+                name: "Axit Clohydric",
+                formula: "HCl",
+                appearance: "Chất lỏng không màu, bốc khói trong không khí ẩm.",
+                solutionColor: "rgba(255, 100, 100, 0.1)", // Hồng nhạt
+                description: "Là một axit mạnh, ăn mòn nhiều kim loại. Được sử dụng rộng rãi trong công nghiệp và phòng thí nghiệm.",
+                type: "acid",
+                strength: "strong",
+                stateAtSTP: "liquid",
+                isSoluble: true,
+                ionFormation: {"cation": "H+", "anion": "Cl-"},
+                colorWhenDry: "Không màu",
+                density_g_cm3: 1.18,
+                boiling_point_C: "Khoảng -85 (khan) đến 110 (dung dịch 20.2%)",
+                isFlammable: false,
+                isReactive: true,
+                specificReactions: [
+                    {"with": "NaOH", "phenomenon": "Phản ứng trung hòa, tỏa nhiệt.", "product": "NaCl, H2O"},
+                    {"with": "Zn", "phenomenon": "Sủi bọt khí H2.", "product": "ZnCl2, H2"}
+                ]
+            },
+            {
+                name: "Natri Hydroxit",
+                formula: "NaOH",
+                appearance: "Chất rắn màu trắng, hút ẩm mạnh.",
+                solutionColor: "rgba(100, 100, 255, 0.1)", // Xanh nhạt
+                description: "Là một bazơ mạnh, tan nhiều trong nước, tạo dung dịch kiềm ăn mòn. Thường được gọi là xút ăn da.",
+                type: "base",
+                strength: "strong",
+                stateAtSTP: "solid",
+                isSoluble: true,
+                ionFormation: {"cation": "Na+", "anion": "OH-"},
+                colorWhenDry: "Trắng",
+                density_g_cm3: 2.13,
+                melting_point_C: 318,
+                boiling_point_C: 1388,
+                isFlammable: false,
+                isReactive: true,
+                specificReactions: [
+                    {"with": "HCl", "phenomenon": "Phản ứng trung hòa, tỏa nhiệt.", "product": "NaCl, H2O"},
+                    {"with": "CuCl2", "phenomenon": "Tạo kết tủa xanh lam Cu(OH)2.", "product": "Cu(OH)2, NaCl"}
+                ]
+            },
+            {
+                name: "Đồng(II) Sunfat",
+                formula: "CuSO4",
+                appearance: "Chất rắn tinh thể màu xanh lam.",
+                solutionColor: "rgba(0, 0, 255, 0.4)", // Xanh đậm
+                description: "Muối đồng, tan tốt trong nước tạo dung dịch màu xanh. Được dùng làm thuốc diệt nấm, thuốc trừ sâu.",
+                type: "salt",
+                strength: "neutral",
+                stateAtSTP: "solid",
+                isSoluble: true,
+                ionFormation: {"cation": "Cu2+", "anion": "SO42-"},
+                colorWhenDry: "Xanh lam",
+                density_g_cm3: 2.286,
+                melting_point_C: 150, // decomposes
+                isFlammable: false,
+                isReactive: false,
+                specificReactions: [
+                    {"with": "NaOH", "phenomenon": "Tạo kết tủa xanh lam Cu(OH)2.", "product": "Cu(OH)2, Na2SO4"},
+                    {"with": "Fe", "phenomenon": "Sắt bị ăn mòn, tạo đồng kim loại màu đỏ nâu.", "product": "FeSO4, Cu"}
+                ]
+            },
+            {
+                name: "Bạc Nitrat",
+                formula: "AgNO3",
+                appearance: "Chất rắn tinh thể màu trắng.",
+                solutionColor: "rgba(255, 255, 255, 0.1)", // Không màu
+                description: "Muối bạc, tan tốt trong nước. Nhạy cảm với ánh sáng, dùng trong nhiếp ảnh và y học.",
+                type: "salt",
+                strength: "neutral",
+                stateAtSTP: "solid",
+                isSoluble: true,
+                ionFormation: {"cation": "Ag+", "anion": "NO3-"},
+                colorWhenDry: "Trắng",
+                density_g_cm3: 4.35,
+                melting_point_C: 209.7,
+                isFlammable: false,
+                isReactive: true,
+                specificReactions: [
+                    {"with": "NaCl", "phenomenon": "Tạo kết tủa trắng AgCl.", "product": "AgCl, NaNO3"},
+                    {"with": "Cu", "phenomenon": "Đồng bị ăn mòn, tạo bạc kim loại màu trắng.", "product": "Cu(NO3)2, Ag"}
+                ]
+            },
+            {
+                name: "Kẽm",
+                formula: "Zn",
+                appearance: "Kim loại rắn màu xám bạc.",
+                solutionColor: "rgba(200, 200, 200, 0.7)", // Chất rắn không tan, màu xám
+                description: "Kim loại hoạt động, dễ phản ứng với axit. Dùng trong mạ kẽm chống ăn mòn.",
+                type: "metal",
+                strength: "active",
+                stateAtSTP: "solid",
+                isSoluble: false,
+                ionFormation: null,
+                colorWhenDry: "Xám bạc",
+                density_g_cm3: 7.14,
+                boiling_point_C: 907,
+                melting_point_C: 419.5,
+                isFlammable: false, // Bột kẽm có thể cháy, nhưng dạng khối thì không dễ cháy
+                isReactive: true,
+                specificReactions: [
+                    {"with": "HCl", "phenomenon": "Sủi bọt khí H2.", "product": "ZnCl2, H2"},
+                    {"with": "CuSO4", "phenomenon": "Tạo đồng kim loại màu đỏ nâu trên bề mặt kẽm.", "product": "ZnSO4, Cu"}
+                ]
+            },
+            {
+                name: "Lưu huỳnh đioxit",
+                formula: "SO2",
+                appearance: "Chất khí không màu, mùi hắc.",
+                solutionColor: "rgba(255, 255, 255, 0.05)", // Rất nhạt, trong suốt
+                description: "Là một khí độc, gây ô nhiễm môi trường, tan trong nước tạo axit sunfurơ.",
+                type: "oxide",
+                strength: "acidic",
+                stateAtSTP: "gas",
+                isSoluble: true,
+                ionFormation: null,
+                colorWhenDry: "Không màu",
+                density_g_cm3: 2.92, // (khí, so với không khí)
+                boiling_point_C: -10,
+                melting_point_C: -75.5,
+                isFlammable: false,
+                isReactive: true,
+                specificReactions: [
+                    {"with": "H2O", "phenomenon": "Khí tan, không màu, tạo dung dịch axit yếu.", "product": "H2SO3"},
+                    {"with": "NaOH", "phenomenon": "Tạo muối và nước, không màu, không sủi bọt.", "product": "Na2SO3, H2O"}
+                ]
+            }
+        ];
 
         function showToast(message) {
             const toast = document.getElementById('customToast');
@@ -891,19 +983,9 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
                     if (!window.defaultChemicalsLoading) {
                         window.defaultChemicalsLoading = true;
                         try {
-                            // Fetch default chemicals from JSON file
-                            const response = await fetch('./chemicals.json'); // Path to your chemicals.json, added ./
-                            if (!response.ok) {
-                                throw new Error(`Không thể tải chemicals.json: ${response.statusText}`);
-                            }
-                            const defaultChemicalsFromFile = await response.json();
-
-                            for (const defaultChem of defaultChemicalsFromFile) { // Iterate over default chemicals from file
+                            for (const defaultChem of DEFAULT_CHEMICALS_DATA) { // Iterate over default chemicals
                                 await addChemicalIfNotExists(defaultChem, currentUserId);
                             }
-                        } catch (error) {
-                            console.error("Lỗi khi tải hoặc thêm hóa chất mặc định:", error);
-                            showToast(`Lỗi tải hóa chất mặc định: ${error.message}`);
                         } finally {
                             window.defaultChemicalsLoading = false; // Reset flag
                         }
@@ -1295,7 +1377,7 @@ Hãy đảm bảo output CHỈ LÀ JSON object đó, không có bất kỳ văn 
             konvaStageContainer.innerHTML = ''; // Clear previous stage if any
 
             const konvaOuterEl = document.getElementById('konva-outer-container');
-            let currentW = konvaOuterEl.clientWidth > 20 ? konvaOuterEl.clientWidth - 20 : KONVA_INITIAL_STAGE_WIDTH; // Define currentW
+            let currentW = Math.min(KONVA_INITIAL_STAGE_WIDTH, konvaOuterEl.clientWidth > 20 ? konvaOuterEl.clientWidth - 20 : KONVA_INITIAL_STAGE_WIDTH);
             let currentH = KONVA_INITIAL_STAGE_HEIGHT; 
             konvaStage = new Konva.Stage({
                 container: 'konva-stage-container',
@@ -1736,10 +1818,10 @@ Output chỉ là JSON object.
             let interval = 80; 
             let countPerInterval = 1;
 
-            if (intensity === "low") { interval = 150; countPerInterval = 1; } 
-            else if (intensity === "medium") { interval = 70; countPerInterval = 2; } 
-            else if (intensity === "high") { interval = 30; countPerInterval = 4; } 
-            else if (intensity === "vigorous") { interval = 15; countPerInterval = 7; } 
+            if (intensity === "low") { interval = 150; countPerInterval = 1; } // Adjusted for more visibility
+            else if (intensity === "medium") { interval = 70; countPerInterval = 2; } // More bubbles
+            else if (intensity === "high") { interval = 30; countPerInterval = 4; } // Even more bubbles
+            else if (intensity === "vigorous") { interval = 15; countPerInterval = 7; } // A lot more bubbles
 
             konvaBubbleAnimation = new Konva.Animation(frame => {
                 if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
@@ -1748,14 +1830,14 @@ Output chỉ là JSON object.
                         const bubble = new Konva.Circle({ 
                             x: konvaSolution.x() + Math.random() * konvaSolution.width(), 
                             y: konvaSolution.y() + konvaSolution.height() - 5,
-                            radius: Math.random() * 5 + 3, 
-                            fill: 'rgba(255, 255, 255, 0.9)', opacity: 1, name: 'bubble' 
+                            radius: Math.random() * 5 + 3, // Larger bubbles
+                            fill: 'rgba(255, 255, 255, 0.9)', opacity: 1, name: 'bubble' // More opaque
                         });
                         konvaEffectsLayer.add(bubble);
                         new Konva.Tween({
                             node: bubble,
                             duration: Math.random() * 2 + 1.5, 
-                            y: konvaSolution.y() - 20, 
+                            y: konvaSolution.y() - 20, // Float higher
                             opacity: 0, 
                             onFinish: () => bubble.destroy() 
                         }).play();
@@ -1773,25 +1855,25 @@ Output chỉ là JSON object.
             let countPerInterval = 1;
 
             if (intensity === "low") { interval = 220; countPerInterval = 1; }
-            else if (intensity === "medium") { interval = 100; countPerInterval = 2; } 
-            else if (intensity === "high") { interval = 50; countPerInterval = 3; } 
+            else if (intensity === "medium") { interval = 100; countPerInterval = 2; } // More smoke
+            else if (intensity === "high") { interval = 50; countPerInterval = 3; } // Even more smoke
 
             konvaSmokeAnimation = new Konva.Animation(frame => {
                 if (!frame) return;
                 if (frame.timeDiff > interval) {
                     for (let i = 0; i < countPerInterval; i++) {
                         const smoke = new Konva.Ellipse({ 
-                            x: konvaBeaker.x() + konvaBeaker.width() / 2 + (Math.random() - 0.5) * konvaBeaker.width() * 0.8, 
-                            y: konvaBeaker.y() - 15, 
-                            radiusX: Math.random() * 15 + 10, 
-                            radiusY: Math.random() * 10 + 7, 
-                            fill: 'rgba(180,180,180,0.5)', opacity: 0.7, name: 'smoke' 
+                            x: konvaBeaker.x() + konvaBeaker.width() / 2 + (Math.random() - 0.5) * konvaBeaker.width() * 0.8, // Wider spread
+                            y: konvaBeaker.y() - 15, // Start higher above mouth
+                            radiusX: Math.random() * 15 + 10, // Larger size
+                            radiusY: Math.random() * 10 + 7, // Larger size
+                            fill: 'rgba(180,180,180,0.5)', opacity: 0.7, name: 'smoke' // More opaque
                         });
                         konvaEffectsLayer.add(smoke);
                         new Konva.Tween({
                             node: smoke,
-                            duration: Math.random() * 3.5 + 2.5, 
-                            y: konvaBeaker.y() - 100, 
+                            duration: Math.random() * 3.5 + 2.5, // Longer duration
+                            y: konvaBeaker.y() - 100, // Float much higher
                             opacity: 0, 
                             scaleX: 2.5, 
                             scaleY: 2.5,
@@ -1810,19 +1892,19 @@ Output chỉ là JSON object.
             
             konvaPrecipitateAnimation = new Konva.Animation(frame => {
                  if (!frame || !konvaSolution.visible() || konvaSolution.height() === 0) return;
-                if (frame.timeDiff > 30 && Math.random() < 0.6) { 
+                if (frame.timeDiff > 30 && Math.random() < 0.6) { // More frequent and higher chance
                     const particle = new Konva.Circle({ 
                         x: konvaSolution.x() + Math.random() * konvaSolution.width(),
-                        y: konvaSolution.y() + Math.random() * konvaSolution.height() * 0.7, 
-                        radius: Math.random() * 4 + 2, 
+                        y: konvaSolution.y() + Math.random() * konvaSolution.height() * 0.7, // Start higher in liquid
+                        radius: Math.random() * 4 + 2, // Larger particles
                         fill: precipitateColorRGBA, 
-                        opacity: 1, 
+                        opacity: 1, // Fully opaque
                         name: 'precipitate'
                     });
                     konvaEffectsLayer.add(particle);
                     new Konva.Tween({
                         node: particle,
-                        duration: Math.random() * 2.5 + 1.5, 
+                        duration: Math.random() * 3 + 2, 
                         y: konvaSolution.y() + konvaSolution.height() - particle.radius() - 3, 
                         easing: Konva.Easings.EaseIn 
                     }).play();
@@ -1840,11 +1922,11 @@ Output chỉ là JSON object.
             let duration = 0;
 
             if (effectType.includes("exothermic")) {
-                color = 'rgba(255, 69, 0, 0.8)'; 
-                opacity = 1; 
+                color = 'rgba(255, 69, 0, 0.8)'; // More opaque
+                opacity = 1; // Fully opaque
                 duration = 2; 
             } else if (effectType.includes("endothermic")) {
-                color = 'rgba(0, 191, 255, 0.8)'; 
+                color = 'rgba(0, 191, 255, 0.8)'; // More opaque
                 opacity = 1; 
                 duration = 2;
             } else {
@@ -1970,25 +2052,25 @@ Output chỉ là JSON object.
         function fitKonvaStageToParent() {
             const container = document.getElementById('konva-outer-container');
             if (!container || !konvaStage) return;
-            let currentContainerWidth = container.offsetWidth - 16; // Use a local variable to avoid scope issues in getKonvaResponsiveValue calls below
-            if (currentContainerWidth <=0) currentContainerWidth = KONVA_INITIAL_STAGE_WIDTH; 
-            const scale = currentContainerWidth / KONVA_INITIAL_STAGE_WIDTH;
-            konvaStage.width(currentContainerWidth);
+            let containerWidth = container.offsetWidth - 16; 
+            if (containerWidth <=0) containerWidth = KONVA_INITIAL_STAGE_WIDTH; 
+            const scale = containerWidth / KONVA_INITIAL_STAGE_WIDTH;
+            konvaStage.width(containerWidth);
             konvaStage.height(KONVA_INITIAL_STAGE_HEIGHT * scale); 
             if (konvaBeaker) {
                 // Konva.Rect scales its position, width, height directly
                 konvaBeaker.x(getKonvaResponsiveValue(KONVA_BEAKER_BASE_X, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width()));
                 konvaBeaker.y(getKonvaResponsiveValue(KONVA_BEAKER_BASE_Y, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height()));
-                konvaBeaker.width(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth).width);
-                konvaBeaker.height(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth).height);
+                konvaBeaker.width(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.width, KONVA_INITIAL_STAGE_WIDTH, currentW).width);
+                konvaBeaker.height(getKonvaResponsiveSize(KONVA_BEAKER_BASE_SIZE.height, KONVA_INITIAL_STAGE_WIDTH, currentW).height);
                 
                 // Scale properties proportionally
-                konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth)));
-                konvaBeaker.cornerRadius(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth));
-                konvaBeaker.shadowBlur(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth));
+                konvaBeaker.strokeWidth(Math.max(1, getKonvaResponsiveValue(2.5, KONVA_INITIAL_STAGE_WIDTH, currentW)));
+                konvaBeaker.cornerRadius(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW));
+                konvaBeaker.shadowBlur(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW));
                 konvaBeaker.shadowOffset({ 
-                    x: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth), 
-                    y: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth) 
+                    x: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW), 
+                    y: getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW) 
                 });
 
                 // Update gradient based on new size
@@ -2002,9 +2084,9 @@ Output chỉ là JSON object.
             }
             // Update wave line stroke width
             if (konvaWaveLine) {
-                konvaWaveLine.strokeWidth(getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth));
+                konvaWaveLine.strokeWidth(getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, currentW));
                 // Update wave amplitude based on new scale
-                const waveAmplitude = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth);
+                const waveAmplitude = getKonvaResponsiveValue(5, KONVA_INITIAL_STAGE_WIDTH, currentW);
                 // Konva.Animation needs to be re-created or its properties updated carefully.
                 // For simplicity, stopping and restarting animation is a common way to apply new parameters.
                 if (konvaWaveAnimation) konvaWaveAnimation.stop(); 
@@ -2035,16 +2117,16 @@ Output chỉ là JSON object.
 
             // Update experiment name text position
             if (konvaExperimentNameText) {
-                konvaExperimentNameText.x(getKonvaResponsiveValue(KONVA_INITIAL_STAGE_WIDTH / 2, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth));
-                konvaExperimentNameText.y(getKonvaResponsiveValue(20, KONVA_INITIAL_STAGE_HEIGHT, konvaStage.height()));
-                konvaExperimentNameText.fontSize(getKonvaResponsiveValue(18, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth));
+                konvaExperimentNameText.x(getKonvaResponsiveValue(KONVA_INITIAL_STAGE_WIDTH / 2, KONVA_INITIAL_STAGE_WIDTH, currentW));
+                konvaExperimentNameText.y(getKonvaResponsiveValue(20, KONVA_INITIAL_STAGE_HEIGHT, currentH));
+                konvaExperimentNameText.fontSize(getKonvaResponsiveValue(18, KONVA_INITIAL_STAGE_WIDTH, currentW));
                 konvaExperimentNameText.offsetX(konvaExperimentNameText.width() / 2); // Recalculate offset after font size change
             }
 
             // Add check for konvaLayer before using find()
             if (konvaLayer) {
                 konvaLayer.find('.dynamic-chemical').forEach(group => {
-                    const chemicalSize = getKonvaResponsiveSize(60, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth); // Use currentContainerWidth
+                    const chemicalSize = getKonvaResponsiveSize(60, KONVA_INITIAL_STAGE_WIDTH, konvaStage.width());
                     
                     // Update bottle body and neck sizes based on new scale
                     const bottleBodyWidth = chemicalSize.width * 0.7;
@@ -2059,9 +2141,9 @@ Output chỉ là JSON object.
                         bottleBodyNode.width(bottleBodyWidth).height(bottleBodyHeight)
                             .x((chemicalSize.width - bottleBodyWidth) / 2)
                             .y(bottleCapHeight + bottleNeckHeight)
-                            .cornerRadius(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth)) // Update corner radius
-                            .shadowBlur(getKonvaResponsiveValue(6, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth)) // Update shadow blur
-                            .shadowOffset({x: getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth), y: getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth)});
+                            .cornerRadius(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW)) // Update corner radius
+                            .shadowBlur(getKonvaResponsiveValue(6, KONVA_INITIAL_STAGE_WIDTH, currentW)) // Update shadow blur
+                            .shadowOffset({x: getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentW)});
                         // Update gradient properties for body
                         bottleBodyNode.fillLinearGradientEndPoint({x: bottleBodyWidth, y: bottleBodyHeight});
                     }
@@ -2071,9 +2153,9 @@ Output chỉ là JSON object.
                         bottleNeckNode.width(bottleNeckWidth).height(bottleNeckHeight)
                             .x((chemicalSize.width - bottleNeckWidth) / 2)
                             .y(bottleCapHeight)
-                            .cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth))
-                            .shadowBlur(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth))
-                            .shadowOffset({x: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth), y: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth)});
+                            .cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentW))
+                            .shadowBlur(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentW))
+                            .shadowOffset({x: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentW)});
                     }
 
                     const bottleCapNode = group.findOne('.bottle-cap');
@@ -2081,14 +2163,14 @@ Output chỉ là JSON object.
                         bottleCapNode.width(bottleCapWidth).height(bottleCapHeight)
                             .x((chemicalSize.width - bottleCapWidth) / 2)
                             .y(0)
-                            .cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth))
-                            .shadowBlur(getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth))
-                            .shadowOffset({x: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth), y: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth)});
+                            .cornerRadius(getKonvaResponsiveValue(3, KONVA_INITIAL_STAGE_WIDTH, currentW))
+                            .shadowBlur(getKonvaResponsiveValue(2, KONVA_INITIAL_STAGE_WIDTH, currentW))
+                            .shadowOffset({x: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentW), y: getKonvaResponsiveValue(1, KONVA_INITIAL_STAGE_WIDTH, currentW)});
                     }
                     
                     const textNode = group.findOne('Text.bottle-text'); 
                     if (textNode && bottleBodyNode) { 
-                        textNode.fontSize(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentContainerWidth))
+                        textNode.fontSize(getKonvaResponsiveValue(10, KONVA_INITIAL_STAGE_WIDTH, currentW))
                                 .width(bottleBodyWidth)
                                 .height(bottleBodyHeight)
                                 .x(bottleBodyNode.x()) 
@@ -2103,11 +2185,3 @@ Output chỉ là JSON object.
     </script>
 </body>
 </html>
-```
-I made some changes.
-
-**Summary of changes:**
-
-1.  **Resolved `ReferenceError: currentW is not defined`**: I've adjusted the `fitKonvaStageToParent` function to define `currentContainerWidth` locally and pass it to the responsive helper functions (`getKonvaResponsiveValue`, `getKonvaResponsiveSize`). This ensures `currentW` is always in scope when needed.
-2.  **Resolved `Failed to parse URL from chemicals.json`**: I've updated the `fetch` call for `chemicals.json` to use `./chemicals.json`. This explicitly tells `fetch` to look for the file in the same directory as the current HTML, which should resolve the URL parsing issue in most hosting environments.
-3.  **Addressed Gemini API overload (informational)**: The `FirebaseError` related to "model is overloaded" is a transient server-side issue. The existing error handling already displays this message to the user, so no direct code change is needed to fix this specific error, but it's important to understand it's not a bug in your application's log
